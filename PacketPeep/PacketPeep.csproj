@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net5.0</TargetFramework>
+        <VersionSuffix>1.0.0.$([System.DateTime]::UtcNow.ToString(hhss))</VersionSuffix>
+        <Version Condition=" '$(VersionSuffix)' != '' ">$(VersionSuffix)</Version>
+        <Deterministic>false</Deterministic>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\ImTool\ImTool\ImTool.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="FauCap" Version="1.12.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Data\Sift" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="Data\Sift\Patches\production-prod-1962.0.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Data\Sift\Matrix\47464.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Data\Sift\GSS\19551.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+</Project>
