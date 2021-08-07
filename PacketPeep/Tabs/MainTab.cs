@@ -60,6 +60,7 @@ namespace PacketPeep.Widgets
                 ImGui.Indent();
                 ImGui.Checkbox("Show Packet Idx", ref Config.Inst.PacketList.ShowPacketIdx);
                 ImGui.Checkbox("Show Packet Seq Num", ref Config.Inst.PacketList.ShowPacketSeqNum);
+                ImGui.Checkbox("Show Packet Ids", ref Config.Inst.PacketList.ShowPacketIds);
             }
         }
 

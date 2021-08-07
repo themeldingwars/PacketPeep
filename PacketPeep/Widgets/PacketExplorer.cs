@@ -363,10 +363,11 @@ namespace PacketPeep.Widgets
         private static void DrawPacketListHeader(int numColumns)
         {
             ImGui.TableSetupScrollFreeze(numColumns, 1);
-            if (Config.Inst.PacketList.ShowPacketIdx) ImGui.TableSetupColumn("P Idx", ImGuiTableColumnFlags.WidthFixed, 30);
+            if (Config.Inst.PacketList.ShowPacketIdx) ImGui.TableSetupColumn("Pkt Idx", ImGuiTableColumnFlags.WidthFixed, 45);
             ImGui.TableSetupColumn("Src", ImGuiTableColumnFlags.WidthFixed, 20);
             ImGui.TableSetupColumn("Ch", ImGuiTableColumnFlags.WidthFixed, 20);
-            if (Config.Inst.PacketList.ShowPacketSeqNum) ImGui.TableSetupColumn("Seq", ImGuiTableColumnFlags.WidthFixed, 40);
+            if (Config.Inst.PacketList.ShowPacketSeqNum) ImGui.TableSetupColumn("Seq", ImGuiTableColumnFlags.WidthFixed, 45);
+            if (Config.Inst.PacketList.ShowPacketIds) ImGui.TableSetupColumn("Id", ImGuiTableColumnFlags.WidthFixed, 45);
             ImGui.TableSetupColumn("Name");
             ImGui.TableHeadersRow();
         }
@@ -377,28 +378,36 @@ namespace PacketPeep.Widgets
             var msg       = PacketPeepTool.PcktDb.Sessions[activeFilter.SessionName].Session.Messages[idx];
             var gameMsg   = msg as GameMessage;
             var isGameMsg = gameMsg != null;
+            var isGss     = gameMsg is {Channel: Channel.ReliableGss or Channel.UnreliableGss};
 
             // Packet idx
             if (Config.Inst.PacketList.ShowPacketIdx) {
                 ImGui.TableNextColumn();
-                ImGui.Text($"{idx}");
+                ImGui.Text($"{idx:N0}");
             }
 
             // Source
             ImGui.TableNextColumn();
-            ImGui.Text(msg.FromServer ? "S" : "C");
+            ImGui.Text(msg.FromServer ? " S" : " C");
 
             // Channel
             ImGui.TableNextColumn();
-            ImGui.Text(msg.Server == Server.Game ? GetChannelName(gameMsg.Channel) : "J");
+            ImGui.Text(msg.Server == Server.Game ? GetChannelName(gameMsg.Channel) : " J ");
 
             if (Config.Inst.PacketList.ShowPacketSeqNum) {
                 ImGui.TableNextColumn();
                 if (isGameMsg && gameMsg.IsSequenced && gameMsg.Raw.Length >= 4) {
                     var seqNum = BitConverter.ToUInt16(new[] {gameMsg.Raw[3], gameMsg.Raw[2]});
-                    ImGui.Text($"{seqNum:N}");
+                    ImGui.Text($"{seqNum:N0}");
                 }
                 else ImGui.Text($"....");
+            }
+
+
+            if (Config.Inst.PacketList.ShowPacketIds) {
+                ImGui.TableNextColumn();
+                if (msg.Server == Server.Game)
+                    ImGui.Text(isGss ? $"{gameMsg.Data[0]}::{gameMsg.Data[8]}" : $"{gameMsg.Data[0]}");
             }
 
             // Name
@@ -441,6 +450,7 @@ namespace PacketPeep.Widgets
                         1414677057 => "ABRT",
                         _          => string.Join("", msg.Data[..4].ToArray().Select(x => (char) x))
                     };
+
                     ImGui.Text(name);
                 }
             }
@@ -461,10 +471,10 @@ namespace PacketPeep.Widgets
         {
             var name = chan switch
             {
-                Channel.Control       => "C",
-                Channel.Matrix        => "M",
-                Channel.ReliableGss   => "R",
-                Channel.UnreliableGss => "U",
+                Channel.Control       => " C ",
+                Channel.Matrix        => " M ",
+                Channel.ReliableGss   => " R ",
+                Channel.UnreliableGss => " U ",
                 _                     => "Wat?"
             };
 

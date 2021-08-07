@@ -21,6 +21,7 @@ namespace PacketPeep
         {
             public bool ShowPacketIdx    = true;
             public bool ShowPacketSeqNum = false;
+            public bool ShowPacketIds    = false;
 
             // Get the num columns to be shown from the settings
             public int GetNumColumsNeeded()
@@ -29,6 +30,7 @@ namespace PacketPeep
 
                 if (ShowPacketIdx) numColumns++;
                 if (ShowPacketSeqNum) numColumns++;
+                if (ShowPacketIds) numColumns++;
 
                 return numColumns;
             }
