@@ -305,6 +305,24 @@ namespace PacketPeep.Systems
 
             SessionName = "";
         }
+
+        public void AddFilter(Channel chan, bool fromServer, int viewId, int msgId)
+        {
+            var filter = MsgFilterData.Create();
+            if (chan is Channel.ReliableGss or Channel.UnreliableGss) {
+                filter.ViewId = viewId;
+                if (fromServer)
+                    filter.MsgId = msgId;
+                else
+                    filter.CmdId = msgId;
+            }
+            else {
+                filter.ViewId = chan == Channel.Control ? -2 : -1;
+                filter.MsgId  = msgId;
+            }
+
+            MsgFilters.Add(filter);
+        }
     }
 
     public struct MsgFilterData

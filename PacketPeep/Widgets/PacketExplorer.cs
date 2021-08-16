@@ -19,24 +19,50 @@ namespace PacketPeep.Widgets
         private Dictionary<string, ControllerData> controllerList        = new();
         private MsgFilterData                      pendingMsgFilterData  = MsgFilterData.Create();
         private string                             pendingControllerName = "";
+        private PacketDb                           pcktDb                = null;
 
-        public PacketExplorer()
+        private int                           plCtxSelectedItem   = -1;
+        private bool                          shouldApplyFilter   = false;
+        private int                           hoveredIdx          = -1;
+        public  Dictionary<string, List<int>> SelectedIdxs        = new();
+        private List<int>                     selectedIdsFiltered = new(); // A cached version of the sesion name selectedIds
+
+        // Events
+        public Action<int, bool> OnMessageSelected; // When a message is selected / deselects, msg id and if selected or not
+        public Action<int>       OnMessageRightClick;
+        public Action<int>       OnMessageHovered;
+        public Action<int>       OnMessageContextMenuDraw;
+
+        // Static Ids
+        private const string PL_ITEM_CTX_POPUP_ID = "###PacketListItemContextPupop";
+
+        public PacketExplorer(PacketDb pcktDb)
         {
+            this.pcktDb = pcktDb;
             BuildMessageNameLists();
         }
 
         public void Draw()
         {
             if (!ImGui.Begin("Packet DB")) return;
+
+            if (!SelectedIdxs.TryGetValue(activeFilter.SessionName, out selectedIdsFiltered)) selectedIdsFiltered = new List<int>();
+            
             DrawFilters();
             DrawPacketList();
             ImGui.End();
+
+            // Apply filters from context menus etc
+            if (shouldApplyFilter) {
+                pcktDb.ApplyFilter(activeFilter);
+                shouldApplyFilter = false;
+            }
         }
 
         private void BuildMessageNameLists()
         {
-            var matrixMsgs = PacketPeepTool.PcktDb.GetSiftMatrixProtocol;
-            var gssMsgs    = PacketPeepTool.PcktDb.GetSiftGssProtocol;
+            var matrixMsgs = pcktDb.GetSiftMatrixProtocol;
+            var gssMsgs    = pcktDb.GetSiftGssProtocol;
 
             controllerList.Add("Matrix", new ControllerData
             {
@@ -78,8 +104,8 @@ namespace PacketPeep.Widgets
             hasFiltersChanged = DrawFiltersMessages(hasFiltersChanged);
 
             // If we don't have a session set yet pick the first
-            if (activeFilter.SessionName == "" && PacketPeepTool.PcktDb.Sessions.Count > 0) {
-                activeFilter.SessionName = PacketPeepTool.PcktDb.Sessions.Keys.First();
+            if (activeFilter.SessionName == "" && pcktDb.Sessions.Count > 0) {
+                activeFilter.SessionName = pcktDb.Sessions.Keys.First();
                 hasFiltersChanged        = true;
             }
 
@@ -87,7 +113,7 @@ namespace PacketPeep.Widgets
 
             // Apply the filter if it changed
             if (hasFiltersChanged) {
-                PacketPeepTool.PcktDb.ApplyFilter(activeFilter);
+                pcktDb.ApplyFilter(activeFilter);
             }
         }
 
@@ -97,7 +123,7 @@ namespace PacketPeep.Widgets
             ImGui.SameLine();
             ImGui.SetNextItemWidth(-27);
             if (ImGui.BeginCombo("###Sessions", activeFilter.SessionName)) {
-                foreach (var sessionName in PacketPeepTool.PcktDb.Sessions.Keys) {
+                foreach (var sessionName in pcktDb.Sessions.Keys) {
                     ImGui.Selectable("###SessionSelected", sessionName == activeFilter.SessionName);
                     ImGui.SameLine();
                     if (ImGui.IsItemClicked()) {
@@ -108,7 +134,7 @@ namespace PacketPeep.Widgets
                     ImGui.SameLine();
                     ImGui.Text(sessionName);
 
-                    if (ImGui.IsItemHovered() && PacketPeepTool.PcktDb.Sessions.TryGetValue(sessionName, out PacketDbSession session)) {
+                    if (ImGui.IsItemHovered() && pcktDb.Sessions.TryGetValue(sessionName, out PacketDbSession session)) {
                         DrawFiltersSessionTooltip(session);
                     }
                 }
@@ -127,8 +153,8 @@ namespace PacketPeep.Widgets
                 ImGui.Text($"Are you sure you want to remove the session {activeFilter.SessionName}?");
 
                 if (ImGui.Button("Yes") && activeFilter.SessionName != "") {
-                    PacketPeepTool.PcktDb.RemoveSession(activeFilter.SessionName);
-                    activeFilter.SessionName = PacketPeepTool.PcktDb.Sessions.Keys.FirstOrDefault() ?? "";
+                    pcktDb.RemoveSession(activeFilter.SessionName);
+                    activeFilter.SessionName = pcktDb.Sessions.Keys.FirstOrDefault() ?? "";
                     hasFiltersChanged        = true;
                     ImGui.CloseCurrentPopup();
                 }
@@ -177,7 +203,7 @@ namespace PacketPeep.Widgets
                 var cidDisplayName = pendingControllerName != "" ? pendingControllerName : "ControllerId";
                 ImGui.SetNextItemWidth(300);
                 if (ImGui.BeginCombo("###ControllerId", cidDisplayName, ImGuiComboFlags.HeightLarge)) {
-                    foreach (var (viewId, viewData) in PacketPeepTool.PcktDb.ControllerList) {
+                    foreach (var (viewId, viewData) in pcktDb.ControllerList) {
                         SimpleDropDownSelectable(viewData.Name, viewData.Id, () =>
                         {
                             pendingControllerName       = viewData.Name;
@@ -199,7 +225,7 @@ namespace PacketPeep.Widgets
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(300);
                 if (ImGui.BeginCombo("###MessageId", "MessageId", ImGuiComboFlags.HeightLarge)) {
-                    if (PacketPeepTool.PcktDb.ControllerList.TryGetValue(pendingMsgFilterData.ViewId, out var cData)) {
+                    if (pcktDb.ControllerList.TryGetValue(pendingMsgFilterData.ViewId, out var cData)) {
                         // Presets
                         SimpleDropDownSelectable("All", -1, () =>
                         {
@@ -252,7 +278,7 @@ namespace PacketPeep.Widgets
                     var msgFiltersToRemove = new List<int>();
                     int idx2               = 0;
                     foreach (var msgf in activeFilter.MsgFilters) {
-                        var view = PacketPeepTool.PcktDb.GetControllerData(msgf.ViewId);
+                        var view = pcktDb.GetControllerData(msgf.ViewId);
 
                         ImGui.TableNextColumn();
                         ImGui.Text($"{view.Name} ({view.Id})");
@@ -336,13 +362,13 @@ namespace PacketPeep.Widgets
         {
             if (ImGui.BeginChild("###PacketListArea", new Vector2(-1, -40))) {
                 var numColumns = Config.Inst.PacketList.GetNumColumsNeeded() + 3; // 3 fixed ones
-                if (ImGui.BeginTable("Packet List", numColumns, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY)) {
+                if (ImGui.BeginTable("Packet List", numColumns, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.ContextMenuInBody)) {
                     DrawPacketListHeader(numColumns);
 
-                    if (activeFilter.SessionName != "" && PacketPeepTool.PcktDb.Sessions[activeFilter.SessionName].Session.Messages.Count > 0) {
+                    if (activeFilter.SessionName != "" && pcktDb.Sessions[activeFilter.SessionName].Session.Messages.Count > 0) {
                         ImGuiListClipper    clipperData;
                         ImGuiListClipperPtr clipper = new ImGuiListClipperPtr(&clipperData);
-                        clipper.Begin(PacketPeepTool.PcktDb.FilteredIndices.Count);
+                        clipper.Begin(pcktDb.FilteredIndices.Count);
 
                         while (clipper.Step()) {
                             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
@@ -374,11 +400,12 @@ namespace PacketPeep.Widgets
 
         private void DrawPacketListItem(int i)
         {
-            var idx       = PacketPeepTool.PcktDb.FilteredIndices[i];
-            var msg       = PacketPeepTool.PcktDb.Sessions[activeFilter.SessionName].Session.Messages[idx];
-            var gameMsg   = msg as GameMessage;
-            var isGameMsg = gameMsg != null;
-            var isGss     = gameMsg is {Channel: Channel.ReliableGss or Channel.UnreliableGss};
+            var idx        = pcktDb.FilteredIndices[i];
+            var msg        = pcktDb.Sessions[activeFilter.SessionName].Session.Messages[idx];
+            var gameMsg    = msg as GameMessage;
+            var isGameMsg  = gameMsg != null;
+            var isGss      = gameMsg is {Channel: Channel.ReliableGss or Channel.UnreliableGss};
+            var isSelected = selectedIdsFiltered.Contains(idx);
 
             // Packet idx
             if (Config.Inst.PacketList.ShowPacketIdx) {
@@ -413,6 +440,62 @@ namespace PacketPeep.Widgets
             // Name
             ImGui.TableNextColumn();
             DrawPacketListName(msg, gameMsg);
+
+            // Events and Actions
+            ImGui.SameLine();
+            
+            // Select
+            if (ImGui.Selectable("###", isSelected, ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.DontClosePopups)) {
+                ToggleMessageSelect(idx);
+                OnMessageSelected?.Invoke(idx, isSelected);
+            }
+
+            // Right / middle click context menu
+            if (ImGui.IsItemHovered() && ImGui.IsMouseReleased(ImGuiMouseButton.Right)) {
+                OnMessageRightClick?.Invoke(idx);
+                ImGui.OpenPopup(PL_ITEM_CTX_POPUP_ID);
+                plCtxSelectedItem = idx;
+                PacketPeepTool.Log.AddLogTrace(LogCategories.General, $"Right clicked item: {i}");
+            }
+
+            // Hovered
+            if (ImGui.IsItemHovered()) {
+                hoveredIdx = idx;
+                OnMessageHovered?.Invoke(idx);
+            }
+
+            // Context Menu
+            if (plCtxSelectedItem == idx && ImGui.BeginPopupContextItem(PL_ITEM_CTX_POPUP_ID)) {
+                DrawPacketListItemContextMenu(i);
+                ImGui.EndPopup();
+            }
+        }
+
+        private void DrawPacketListItemContextMenu(int i)
+        {
+            var idx     = pcktDb.FilteredIndices[i];
+            var msg     = pcktDb.Sessions[activeFilter.SessionName].Session.Messages[idx];
+            var gameMsg = msg as GameMessage;
+            var isGss   = gameMsg is {Channel: Channel.ReliableGss or Channel.UnreliableGss};
+
+            ImGui.Text($"Idx: {i}");
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+            ImGui.Text(gameMsg.FromServer ? "Server" : "Client");
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+            ImGui.Text(gameMsg.Channel.ToString());
+
+            ImGui.Text($"Size: {gameMsg.Data.Length:N0}");
+
+            if (ImGui.MenuItem("Add filter for this type")) {
+                activeFilter.AddFilter(gameMsg.Channel, gameMsg.FromServer, gameMsg.Data[0], isGss ? gameMsg.Data[8] : gameMsg.Data[0]);
+                shouldApplyFilter = true;
+            }
+
+            OnMessageContextMenuDraw?.Invoke(i);
         }
 
         private static void DrawPacketListName(Message msg, GameMessage gameMsg)
@@ -512,6 +595,20 @@ namespace PacketPeep.Widgets
             }
             else {
                 fromPreviewStr += "none";
+            }
+        }
+
+        private void ToggleMessageSelect(int idx)
+        {
+            if (!SelectedIdxs.ContainsKey(activeFilter.SessionName)) SelectedIdxs.Add(activeFilter.SessionName, new List<int>(20));
+
+            if (SelectedIdxs.TryGetValue(activeFilter.SessionName, out var selectedIdxs)) {
+                if (selectedIdxs.Contains(idx)) {
+                    selectedIdxs.Remove(idx);
+                }
+                else {
+                    selectedIdxs.Add(idx);
+                }
             }
         }
 

@@ -11,7 +11,16 @@ namespace PacketPeep.Widgets
         public          bool           ShowOpenCaptureDialog = false;
         public          PacketPeepTool Tool;
 
-        public PacketExplorer PacketExp = new PacketExplorer();
+        public PacketExplorer PacketExp = new PacketExplorer(PacketPeepTool.PcktDb);
+
+        public MainTab()
+        {
+            // Temp testing for now
+            PacketExp.OnMessageSelected += (i, b) =>
+            {
+                PacketPeepTool.Log.AddLogTrace(LogCategories.General, $"Select item: {i}");
+            };
+        }
 
         public override void SubmitContent()
         {
@@ -21,7 +30,7 @@ namespace PacketPeep.Widgets
             FileBrowser.Draw();
             
             PacketExp.Draw();
-            
+
             PacketPeepTool.Log.DrawWindow();
         }
 
