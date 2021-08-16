@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Linq;
+using System.Numerics;
 using ImGuiNET;
 using ImTool;
 
@@ -40,6 +41,7 @@ namespace PacketPeep.Widgets
 
             Setting_GameVersion();
             Setting_PacketListDisplay();
+            Setting_Colors();
         }
 
         private static void Setting_GameVersion()
@@ -67,9 +69,23 @@ namespace PacketPeep.Widgets
         {
             if (ImGui.CollapsingHeader("Packet List Display")) {
                 ImGui.Indent();
-                ImGui.Checkbox("Show Packet Idx", ref Config.Inst.PacketList.ShowPacketIdx);
-                ImGui.Checkbox("Show Packet Seq Num", ref Config.Inst.PacketList.ShowPacketSeqNum);
-                ImGui.Checkbox("Show Packet Ids", ref Config.Inst.PacketList.ShowPacketIds);
+                {
+                    ImGui.Checkbox("Show Packet Idx", ref Config.Inst.PacketList.ShowPacketIdx);
+                    ImGui.Checkbox("Show Packet Seq Num", ref Config.Inst.PacketList.ShowPacketSeqNum);
+                    ImGui.Checkbox("Show Packet Ids", ref Config.Inst.PacketList.ShowPacketIds);
+                }
+                ImGui.Unindent();
+            }
+        }
+
+        private static void Setting_Colors()
+        {
+            if (ImGui.CollapsingHeader("Colors")) {
+                foreach (var kvp in Config.Inst.PColors) {
+                    var color = kvp.Value;
+                    ImGui.ColorEdit4(kvp.Key.ToString(), ref color);
+                    Config.Inst.PColors[kvp.Key] = color;
+                }
             }
         }
 

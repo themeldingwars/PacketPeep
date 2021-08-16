@@ -47,7 +47,7 @@ namespace PacketPeep.Widgets
             if (!ImGui.Begin("Packet DB")) return;
 
             if (!SelectedIdxs.TryGetValue(activeFilter.SessionName, out selectedIdsFiltered)) selectedIdsFiltered = new List<int>();
-            
+
             DrawFilters();
             DrawPacketList();
             ImGui.End();
@@ -415,11 +415,29 @@ namespace PacketPeep.Widgets
 
             // Source
             ImGui.TableNextColumn();
-            ImGui.Text(msg.FromServer ? " S" : " C");
+            if (msg.FromServer) ImGui.TextColored(Config.Inst.PColors[Config.Colors.Server], " S ");
+            else ImGui.TextColored(Config.Inst.PColors[Config.Colors.Client], " C ");
 
             // Channel
             ImGui.TableNextColumn();
-            ImGui.Text(msg.Server == Server.Game ? GetChannelName(gameMsg.Channel) : " J ");
+            if (msg.Server == Server.Game) {
+                switch (gameMsg.Channel) {
+                    case Channel.Control:
+                        ImGui.TextColored(Config.Inst.PColors[Config.Colors.Control], " C ");
+                        break;
+                    case Channel.Matrix:
+                        ImGui.TextColored(Config.Inst.PColors[Config.Colors.Matrix], " M ");
+                        break;
+                    case Channel.ReliableGss:
+                        ImGui.TextColored(Config.Inst.PColors[Config.Colors.RGSS], " R ");
+                        break;
+                    case Channel.UnreliableGss:
+                        ImGui.TextColored(Config.Inst.PColors[Config.Colors.UGSS], " U ");
+                        break;
+                }
+            }
+            else
+                ImGui.TextColored(Config.Inst.PColors[Config.Colors.Jack], " J ");
 
             if (Config.Inst.PacketList.ShowPacketSeqNum) {
                 ImGui.TableNextColumn();
@@ -443,7 +461,7 @@ namespace PacketPeep.Widgets
 
             // Events and Actions
             ImGui.SameLine();
-            
+
             // Select
             if (ImGui.Selectable("###", isSelected, ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.AllowDoubleClick | ImGuiSelectableFlags.DontClosePopups)) {
                 ToggleMessageSelect(idx);
@@ -482,13 +500,22 @@ namespace PacketPeep.Widgets
             ImGui.SameLine();
             ImGui.Spacing();
             ImGui.SameLine();
-            ImGui.Text(gameMsg.FromServer ? "Server" : "Client");
+            ImGui.TextColored(Config.Inst.PColors[gameMsg.FromServer ? Config.Colors.Server : Config.Colors.Client], gameMsg.FromServer ? "Server" : "Client");
             ImGui.SameLine();
             ImGui.Spacing();
             ImGui.SameLine();
-            ImGui.Text(gameMsg.Channel.ToString());
 
+            var chanColor = gameMsg.Channel switch
+            {
+                Channel.Control       => Config.Inst.PColors[Config.Colors.Control],
+                Channel.Matrix        => Config.Inst.PColors[Config.Colors.Matrix],
+                Channel.UnreliableGss => Config.Inst.PColors[Config.Colors.UGSS],
+                Channel.ReliableGss   => Config.Inst.PColors[Config.Colors.RGSS],
+            };
+            ImGui.TextColored(chanColor, gameMsg.Channel.ToString());
+            
             ImGui.Text($"Size: {gameMsg.Data.Length:N0}");
+            ImGui.NewLine();
 
             if (ImGui.MenuItem("Add filter for this type")) {
                 activeFilter.AddFilter(gameMsg.Channel, gameMsg.FromServer, gameMsg.Data[0], isGss ? gameMsg.Data[8] : gameMsg.Data[0]);
