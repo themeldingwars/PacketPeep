@@ -11,27 +11,29 @@ namespace PacketPeep.Widgets
         public override string         Name { get; } = "Packet Peep";
         public          bool           ShowOpenCaptureDialog = false;
         public          PacketPeepTool Tool;
+        public static   uint           DockId = 1;
 
         public PacketExplorer PacketExp = new PacketExplorer(PacketPeepTool.PcktDb);
 
         public MainTab()
         {
             // Temp testing for now
-            PacketExp.OnMessageSelected += (i, b) =>
-            {
-                PacketPeepTool.Log.AddLogTrace(LogCategories.General, $"Select item: {i}");
-            };
+            PacketExp.OnMessageSelected += (i, b) => { PacketPeepTool.Log.AddLogTrace(LogCategories.General, $"Select item: {i}"); };
         }
 
         public override void SubmitContent()
         {
             //ImGui.ShowDemoWindow();
-            
+
             if (ShowOpenCaptureDialog) DrawCaptureDialog();
             FileBrowser.Draw();
-            
-            PacketExp.Draw();
 
+            var size = ImGui.GetWindowSize();
+            size.Y -= 5;
+            ImGui.DockSpace(DockId, size, ImGuiDockNodeFlags.PassthruCentralNode);
+
+            PacketExp.Draw();
+            
             PacketPeepTool.Log.DrawWindow();
         }
 
@@ -104,10 +106,10 @@ namespace PacketPeep.Widgets
                     PacketPeepTool.PcktDb.LoadCapture(file);
                 }
             }, Config.Inst.LastCaptureDir);
-            
+
             ShowOpenCaptureDialog = false;
         }
-        
+
         public void OpenCaptureDiaglog() => ShowOpenCaptureDialog = true;
     }
 }

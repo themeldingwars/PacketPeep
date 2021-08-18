@@ -44,6 +44,7 @@ namespace PacketPeep.Widgets
 
         public void Draw()
         {
+            //ImGui.SetNextWindowDockID(MainTab.DockId, ImGuiCond.FirstUseEver);
             if (!ImGui.Begin("Packet DB")) return;
 
             if (!SelectedIdxs.TryGetValue(activeFilter.SessionName, out selectedIdsFiltered)) selectedIdsFiltered = new List<int>();
