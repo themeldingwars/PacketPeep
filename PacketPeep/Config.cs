@@ -17,6 +17,10 @@ namespace PacketPeep
 
         [JsonProperty(ItemConverterType = typeof(ImTool.JsonConverters.ColorConverter))]
         public Dictionary<Colors, Vector4> PColors { get; set; } = new();
+        
+        // Message Inspector settings
+        public bool ShowParsedValuesInSide    = false;
+        public bool ShowParsedValuesInToolTip = true;
 
         // override the default window settings
         public Config()
