@@ -25,7 +25,10 @@ namespace PacketPeep
         // override the default window settings
         public Config()
         {
-            Title = "Packet Peep";
+            Title                 = "Packet Peep";
+            GithubRepositoryOwner = "themeldingwars";
+            GithubRepositoryName  = "PacketPeep";
+            GithubReleaseName     = "PacketPeep";
 
             // Default colors
             PColors.Add(Colors.Server, HexColorToVec4("EC4646"));
