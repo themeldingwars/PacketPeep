@@ -77,5 +77,39 @@ namespace PacketPeep
             ImGui.TableNextColumn();
             ImGui.Text(text);
         }
+
+        public static MessageHeader GetGssMessageHeader(Message msg)
+        {
+            var isGameMsg   = msg is GameMessage;
+            var gameMessage = msg as GameMessage;
+            var isGss       = isGameMsg && gameMessage.Channel is Channel.ReliableGss or Channel.UnreliableGss;
+
+            var header = new MessageHeader()
+            {
+                IsCommand = !msg.FromServer
+            };
+
+            if (isGss) {
+                header.ControllerId = msg.Data[0];
+                header.MessageId    = msg.Data[8];
+                header.EntityId     = BitConverter.ToUInt64(msg.Data[..8]) >> 8;
+                header.Length       = 9;
+            }
+            else {
+                header.MessageId = msg.Data[0];
+                header.Length    = 1;
+            }
+
+            return header;
+        }
+    }
+
+    public struct MessageHeader
+    {
+        public int   ControllerId;
+        public int   MessageId;
+        public ulong EntityId;
+        public bool  IsCommand;
+        public int   Length;
     }
 }

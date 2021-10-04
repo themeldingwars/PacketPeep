@@ -35,21 +35,23 @@ namespace PacketPeep.Widgets
 
         private void CreateCachedData()
         {
+            var headerData = Utils.GetGssMessageHeader(Msg);
+            
             var isGameMsg   = Msg is GameMessage;
             var gameMessage = Msg as GameMessage;
             var isGss       = isGameMsg && gameMessage.Channel is Channel.ReliableGss or Channel.UnreliableGss;
 
             title   = $"{Utils.GetMessageName(Msg)} ({MessageIdx})";
-            sizeStr = $@"{Msg.Data.Length:N0}";
-            idStr   = isGss ? $"{gameMessage.Data[0]}::{gameMessage.Data[8]}" : $"{gameMessage.Data[0]}";
+            sizeStr = $@"{Msg.Data.Length - headerData.Length:N0}"; // minus the header data
+            idStr   = isGss ? $"{headerData.ControllerId}::{headerData.MessageId}" : $"{headerData.MessageId}";
 
             if (isGss) {
-                entityId    = BitConverter.ToUInt64(Msg.Data[..8]) >> 8;
+                entityId    = headerData.EntityId;
                 entityIdStr = $"{entityId}";
             }
 
             hexView = new HexView();
-            hexView.SetData(Msg.Data.ToArray(), new HexView.HighlightSection[] { });
+            hexView.SetData(Msg.Data[headerData.Length..].ToArray(), new HexView.HighlightSection[] { });
         }
 
         public bool Draw()
