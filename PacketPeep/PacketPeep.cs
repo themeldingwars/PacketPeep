@@ -37,6 +37,8 @@ namespace PacketPeep
             window.AddTab(Main);
 
             window.AddWindowButton(new WindowButton("Load Capture", () => Main.OpenCaptureDiaglog()));
+            
+            PacketParser.Init();
         }
 
         protected override void Unload()

@@ -3,6 +3,7 @@
     public enum LogCategories
     {
         General,
-        PacketDB
+        PacketDB,
+        PacketParser
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using ImGuiNET;
 using ImTool;
+using PacketPeep.Systems;
 
 namespace PacketPeep.Widgets
 {
@@ -11,6 +12,7 @@ namespace PacketPeep.Widgets
     {
         public override string         Name { get; } = "Packet Peep";
         public          bool           ShowOpenCaptureDialog = false;
+        public static   bool           ShowAeroDllBrowser    = false;
         public          PacketPeepTool Tool;
         public static   uint           DockId = 1;
 
@@ -46,6 +48,21 @@ namespace PacketPeep.Widgets
 
             // Prob need some way to keep drawing these if this tab is changed incase these are moved out of the main window
             DrawMessageInspectors();
+
+            PacketParser.Draw();
+
+            if (ShowAeroDllBrowser) {
+                var dllDir = !string.IsNullOrEmpty(Config.Inst.AeroMessageDllLocation) ? Path.GetDirectoryName(Config.Inst.AeroMessageDllLocation) : "";
+                FileBrowser.OpenFile(file =>
+                {
+                    if (file != Config.Inst.AeroMessageDllLocation) {
+                        PacketParser.RefreshDllLocation();
+                    }
+                    
+                    Config.Inst.AeroMessageDllLocation = file;
+                }, dllDir);
+                ShowAeroDllBrowser = false;
+            }
         }
 
         public void OpenMessageInspector(int idx)
@@ -83,6 +100,7 @@ namespace PacketPeep.Widgets
             //ImGui.Text($"Submitted from DemoTab.SubmitSettings({active})");
 
             Setting_GameVersion();
+            Setting_PacketParser();
             Setting_PacketListDisplay();
             Setting_MessageInspector();
             Setting_Colors();
@@ -106,6 +124,17 @@ namespace PacketPeep.Widgets
                 }
 
                 ImGui.EndCombo();
+            }
+        }
+
+        public static void Setting_PacketParser()
+        {
+            // Aero messages dll location
+            var aeroDllPath = Config.Inst.AeroMessageDllLocation ?? "";
+            ImGui.InputText("###", ref aeroDllPath, 500);
+            ImGui.SameLine();
+            if (ImGui.Button("...")) {
+                ShowAeroDllBrowser = true;
             }
         }
 
@@ -165,5 +194,7 @@ namespace PacketPeep.Widgets
         }
 
         public void OpenCaptureDiaglog() => ShowOpenCaptureDialog = true;
+
+        private void OpenAeroDllBrowser() => ShowAeroDllBrowser = true;
     }
 }

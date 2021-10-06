@@ -10,8 +10,9 @@ namespace PacketPeep
     {
         public static Config Inst;
 
-        public string LastCaptureDir   = null;
-        public string GameBuildVersion = "production 1962.0";
+        public string LastCaptureDir         = null;
+        public string GameBuildVersion       = "production 1962.0";
+        public string AeroMessageDllLocation = null;
 
         public PacketListDisplay PacketList = new();
 
