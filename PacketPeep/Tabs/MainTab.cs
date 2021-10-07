@@ -58,7 +58,7 @@ namespace PacketPeep.Widgets
                     if (file != Config.Inst.AeroMessageDllLocation) {
                         PacketParser.RefreshDllLocation();
                     }
-                    
+
                     Config.Inst.AeroMessageDllLocation = file;
                 }, dllDir);
                 ShowAeroDllBrowser = false;
@@ -70,7 +70,8 @@ namespace PacketPeep.Widgets
             if (MsgInspectors.Any(x => x.SessionName == PacketExp.ActiveFilter.SessionName && x.MessageIdx == idx)) return; // Already open
 
             var msg          = PacketExp.GetMsg(idx);
-            var msgInspector = new MessageInspector(PacketExp.ActiveFilter.SessionName, idx, msg);
+            var msgObj       = PacketExp.GetActiveSession().ParsedMessages[idx];
+            var msgInspector = new MessageInspector(PacketExp.ActiveFilter.SessionName, idx, msg, msgObj);
             msgInspector.OnClose = CloseMessageInspector;
             MsgInspectors.Add(msgInspector);
         }

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Aero.Gen;
 using FauCap;
 using Newtonsoft.Json.Schema;
 using Sift;
@@ -222,6 +223,7 @@ namespace PacketPeep.Systems
                 if (!Sessions.ContainsKey(sessionName)) {
                     var packetSession = new PacketDbSession(session, sessionName);
                     Sessions.Add(sessionName, packetSession);
+                    PacketParser.ParseMessagesForSession(packetSession);
                     PacketPeepTool.Log.AddLogInfo(LogCategories.PacketDB, $"Added session {sessionName}, {session.Datagrams.Count:N0} Datagrams, {session.Packets.Count:N0} Packets, {session.Messages.Count:N0} Messages");
                 }
             }
@@ -259,6 +261,7 @@ namespace PacketPeep.Systems
     {
         public string      Name;
         public GameSession Session;
+        public List<IAero> ParsedMessages = new();
 
         public PacketDbSession(GameSession session, string name)
         {

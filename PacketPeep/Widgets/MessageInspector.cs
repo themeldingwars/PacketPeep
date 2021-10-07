@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+using Aero.Gen;
 using FauCap;
 using ImGuiNET;
 using ImTool;
@@ -12,6 +13,7 @@ namespace PacketPeep.Widgets
         public string      SessionName;
         public int         MessageIdx;
         public Message     Msg;
+        public IAero       MsgObj;
         public Action<int> OnClose;
 
         // Cached data
@@ -24,11 +26,12 @@ namespace PacketPeep.Widgets
 
         private HexView hexView;
 
-        public MessageInspector(string sessionName, int messageIdx, Message msg)
+        public MessageInspector(string sessionName, int messageIdx, Message msg, IAero msgObj)
         {
             SessionName = sessionName;
             MessageIdx  = messageIdx;
             Msg         = msg;
+            MsgObj      = msgObj;
 
             CreateCachedData();
         }
@@ -63,6 +66,7 @@ namespace PacketPeep.Widgets
 
             DrawHeader();
             DrawHexView();
+            DrawInspector();
 
             ImGui.End();
 
@@ -113,6 +117,18 @@ namespace PacketPeep.Widgets
             hexView.ShowSideParsedValues = Config.Inst.ShowParsedValuesInSide;
             hexView.ShowParsedValuesInTT = Config.Inst.ShowParsedValuesInToolTip;
             hexView.Draw();
+        }
+
+        private void DrawInspector()
+        {
+            if (ImGui.CollapsingHeader("Inspector")) {
+                if (MsgObj == null) {
+                    ImGui.Text("No class to use to parse this.");
+                }
+                else {
+                    ImGui.Text($"{MsgObj.ToString()}");
+                }
+            }
         }
     }
 }

@@ -84,10 +84,20 @@ namespace PacketPeep
             var gameMessage = msg as GameMessage;
             var isGss       = isGameMsg && gameMessage.Channel is Channel.ReliableGss or Channel.UnreliableGss;
 
-            var header = new MessageHeader()
+            var header = new MessageHeader
             {
                 IsCommand = !msg.FromServer
             };
+
+            if (isGameMsg) {
+                header.Channel = gameMessage.Channel;
+            }
+            else if (msg is MatrixMessage) {
+                header.Channel = Channel.Matrix;
+            }
+            else {
+                header.Channel = Channel.Control;
+            }
 
             if (isGss) {
                 header.ControllerId = msg.Data[0];
@@ -106,10 +116,13 @@ namespace PacketPeep
 
     public struct MessageHeader
     {
-        public int   ControllerId;
-        public int   MessageId;
-        public ulong EntityId;
-        public bool  IsCommand;
-        public int   Length;
+        public int     ControllerId;
+        public int     MessageId;
+        public ulong   EntityId;
+        public bool    IsCommand;
+        public Channel Channel;
+        public int     Length;
+
+        public bool IsGss => Channel is Channel.ReliableGss or Channel.UnreliableGss;
     }
 }

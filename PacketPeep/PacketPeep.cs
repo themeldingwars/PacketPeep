@@ -26,7 +26,7 @@ namespace PacketPeep
             //      mutex check to ensure only a single instance of the tool is running
             //      routing cmd-line messages to a single instance tool
             //
-
+            
             Config.Inst = config;
             Main.Tool   = this;
             return true;

@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Aero.Gen;
 using Aero.Gen.Attributes;
+using FauCap;
 using McMaster.NETCore.Plugins;
 
 namespace PacketPeep.Systems
@@ -80,11 +83,49 @@ namespace PacketPeep.Systems
             PacketPeepTool.Log.AddLogInfo(LogCategories.PacketParser, "Loaded Dll!");
         }
 
-        public static object GetMessageFromIds(AeroMessageIdAttribute.MsgType msgType, AeroMessageIdAttribute.MsgSrc msgSrc, int messageId, int controllerId = -1)
+        public static IAero GetMessageFromIds(AeroMessageIdAttribute.MsgType msgType, AeroMessageIdAttribute.MsgSrc msgSrc, int messageId, int controllerId = -1)
         {
             using (Loader.EnterContextualReflection()) {
-                var result = GetAeroMessageHandlerMI.Invoke(null, new object[] {msgType, msgSrc, messageId, controllerId});
+                var result = (IAero)GetAeroMessageHandlerMI.Invoke(null, new object[] {msgType, msgSrc, messageId, controllerId});
                 return result;
+            }
+        }
+
+        public static void ParseMessagesForSession(PacketDbSession session)
+        {
+            foreach (var msg in session.Session.Messages) {
+                var msgHeader = Utils.GetGssMessageHeader(msg);
+                var msgSrc    = msgHeader.IsCommand ? AeroMessageIdAttribute.MsgSrc.Command : AeroMessageIdAttribute.MsgSrc.Message;
+                var msgType = msgHeader.Channel switch
+                {
+                    Channel.Control       => AeroMessageIdAttribute.MsgType.Control,
+                    Channel.Matrix        => AeroMessageIdAttribute.MsgType.Matrix,
+                    Channel.ReliableGss   => AeroMessageIdAttribute.MsgType.GSS,
+                    Channel.UnreliableGss => AeroMessageIdAttribute.MsgType.GSS,
+                    _                     => AeroMessageIdAttribute.MsgType.Control
+                };
+
+                if (msg.Server == Server.Matrix) { // jack messages
+                    session.ParsedMessages.Add(null);
+                }
+                else {
+                    var msgObj = GetMessageFromIds(msgType, msgSrc, msgHeader.MessageId, msgHeader.ControllerId);
+                    Debug.WriteLine($"MessageId: {msgHeader.MessageId}, {msgHeader.ControllerId}, msgObj: {msgObj}");
+
+                    if (msgObj != null) {
+                        try {
+                            var data = msg.Data[msgHeader.Length..];
+                            msgObj.Unpack(data);
+                            PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}");
+                        }
+                        catch (Exception e) {
+                            PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, $"Error unpacking message for {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)} to {msgObj.GetType().Name}\n{e}");
+                        }
+                    }
+                    
+                    // If it was null from not having a class yet still add it to keep the indexes lined up
+                    session.ParsedMessages.Add(msgObj);
+                }
             }
         }
 
@@ -96,7 +137,6 @@ namespace PacketPeep.Systems
         // any drawing we need for the parser like popups and alerts
         public static void Draw()
         {
-            
         }
     }
 }
