@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Aero.Gen" Version="1.1.27" />
+      <PackageReference Include="Aero.Gen" Version="1.1.28" />
       <PackageReference Include="FauCap" Version="1.12.0" />
       <PackageReference Include="ImTool" Version="1.1.1" />
       <PackageReference Include="McMaster.NETCore.Plugins" Version="1.4.0" />

@@ -167,11 +167,27 @@ namespace PacketPeep.Widgets
         private static void Setting_Colors()
         {
             if (ImGui.CollapsingHeader("Colors")) {
-                foreach (var kvp in Config.Inst.PColors) {
-                    var color = kvp.Value;
-                    ImGui.ColorEdit4(kvp.Key.ToString(), ref color);
-                    Config.Inst.PColors[kvp.Key] = color;
+                ImGui.Indent();
+                {
+                    foreach (var kvp in Config.Inst.PColors) {
+                        var color = kvp.Value;
+                        ImGui.ColorEdit4(kvp.Key.ToString(), ref color);
+                        Config.Inst.PColors[kvp.Key] = color;
+                    }
                 }
+
+                if (ImGui.CollapsingHeader("Highlight Colors", ImGuiTreeNodeFlags.DefaultOpen)) {
+                    ImGui.Indent();
+                    {
+                        for (int i = 0; i < Config.Inst.MessageEntryColors.Count; i++) {
+                            var color = Config.Inst.MessageEntryColors[i];
+                            ImGui.ColorEdit4($"###Color_{i}", ref color);
+                            Config.Inst.MessageEntryColors[i] = color;
+                        }
+                    }
+                    ImGui.Unindent();
+                }
+                ImGui.Unindent();
             }
         }
 

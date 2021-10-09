@@ -110,7 +110,7 @@ namespace PacketPeep.Systems
                 }
                 else {
                     var msgObj = GetMessageFromIds(msgType, msgSrc, msgHeader.MessageId, msgHeader.ControllerId);
-                    Debug.WriteLine($"MessageId: {msgHeader.MessageId}, {msgHeader.ControllerId}, msgObj: {msgObj}");
+                    //Debug.WriteLine($"MessageId: {msgHeader.MessageId}, {msgHeader.ControllerId}, msgObj: {msgObj}");
 
                     if (msgObj != null) {
                         try {

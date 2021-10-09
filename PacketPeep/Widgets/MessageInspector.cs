@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Aero.Gen;
 using FauCap;
 using ImGuiNET;
 using ImTool;
+using Octokit;
 
 namespace PacketPeep.Widgets
 {
@@ -24,7 +26,8 @@ namespace PacketPeep.Widgets
         private string sizeStr;
         private string idStr;
 
-        private HexView hexView;
+        private HexView       hexView;
+        private AeroInspector Inspector;
 
         public MessageInspector(string sessionName, int messageIdx, Message msg, IAero msgObj)
         {
@@ -39,7 +42,7 @@ namespace PacketPeep.Widgets
         private void CreateCachedData()
         {
             var headerData = Utils.GetGssMessageHeader(Msg);
-            
+
             var isGameMsg   = Msg is GameMessage;
             var gameMessage = Msg as GameMessage;
             var isGss       = isGameMsg && gameMessage.Channel is Channel.ReliableGss or Channel.UnreliableGss;
@@ -53,8 +56,36 @@ namespace PacketPeep.Widgets
                 entityIdStr = $"{entityId}";
             }
 
-            hexView = new HexView();
-            hexView.SetData(Msg.Data[headerData.Length..].ToArray(), new HexView.HighlightSection[] { });
+            Inspector = new(MsgObj);
+            hexView   = new HexView();
+
+            var highlights = new List<HexView.HighlightSection>(Inspector.Entries.Count);
+            void AddHighlightEntry(AeroInspectorEntry entry)
+            {
+                if (entry.Size > 0 && !entry.IsArray) {
+                    var highlight = new HexView.HighlightSection
+                    {
+                        Offset     = entry.Offset,
+                        Length     = entry.Size,
+                        Color      = Config.Inst.MessageEntryColors[entry.ColorIdx],
+                        HoverName  = entry.Name,
+                        IsSelected = false
+                    };
+
+                    highlights.Add(highlight);
+                }
+
+                if (entry.SubEntrys.Count > 0) {
+                    foreach (var subEntry in entry.SubEntrys) {
+                        AddHighlightEntry(subEntry);
+                    }
+                }
+            }
+            foreach (var entry in Inspector.Entries) {
+                AddHighlightEntry(entry);
+            }
+
+            hexView.SetData(Msg.Data[headerData.Length..].ToArray(), highlights.ToArray());
         }
 
         public bool Draw()
@@ -102,13 +133,13 @@ namespace PacketPeep.Widgets
 
                 ImGui.TableNextColumn();
                 ImGui.Text(sizeStr);
-                
+
                 ImGui.TableNextColumn();
                 if (isGss) ImGui.Text(entityIdStr);
 
                 ImGui.EndTable();
             }
-            
+
             ImGui.NewLine();
         }
 
@@ -126,7 +157,7 @@ namespace PacketPeep.Widgets
                     ImGui.Text("No class to use to parse this.");
                 }
                 else {
-                    ImGui.Text($"{MsgObj.ToString()}");
+                    Inspector.Draw();
                 }
             }
         }
