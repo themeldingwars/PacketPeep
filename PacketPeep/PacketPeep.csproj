@@ -10,30 +10,26 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\ImTool\ImTool\ImTool.csproj" />
+        <PackageReference Include="Aero.Gen" Version="1.1.28" />
+        <PackageReference Include="FauCap" Version="1.12.0" />
+        <PackageReference Include="ImTool" Version="1.2.4" />
+        <PackageReference Include="McMaster.NETCore.Plugins" Version="1.4.0" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Aero.Gen" Version="1.1.28" />
-      <PackageReference Include="FauCap" Version="1.12.0" />
-      <PackageReference Include="ImTool" Version="1.1.1" />
-      <PackageReference Include="McMaster.NETCore.Plugins" Version="1.4.0" />
+        <Folder Include="Data\Sift" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Data\Sift" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Update="Data\Sift\Patches\production-prod-1962.0.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="Data\Sift\Matrix\47464.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="Data\Sift\GSS\19551.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
+        <None Update="Data\Sift\Patches\production-prod-1962.0.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="Data\Sift\Matrix\47464.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="Data\Sift\GSS\19551.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
 </Project>

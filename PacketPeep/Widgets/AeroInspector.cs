@@ -15,14 +15,15 @@ namespace PacketPeep.Widgets
         public IAero                    AeroObj;
         public List<AeroInspectorEntry> Entries    = new();
         public int                      HoveredIdx = -1;
+        public Action<string>           LogError;
 
         private int OrderIdx;
         private int Offset;
 
         // Display settings
         private const int COLOR_BAR_WIDTH = 10;
-        private const int LINE_HEIGHT     = 30;
-        private const int INDENT_DIST     = 15;
+        private const int LINE_HEIGHT     = 25;
+        private const int INDENT_DIST     = 5;
 
         public AeroInspector(IAero aeroObj)
         {
@@ -40,87 +41,93 @@ namespace PacketPeep.Widgets
             AddEntriesForType(type, AeroObj);
         }
 
+        // Add logic for ifs
         private void AddEntriesForType(Type type, object obj, AeroInspectorEntry parentEntry = null)
         {
-            foreach (var f in type.GetFields().Where(f => f.IsPublic)) {
-                var entry = new AeroInspectorEntry
-                {
-                    Name     = f.Name,
-                    EType    = GetEntryTypeFromType(f.FieldType.IsArray ? f.FieldType.GetElementType() : f.FieldType),
-                    IsArray  = f.FieldType.IsArray,
-                    Ref      = f,
-                    OrderIdx = OrderIdx++,
-                    Size     = f.FieldType.IsArray ? 0 : Genv2.GetTypeSize(f.FieldType.Name),
-                    Offset   = Offset,
-                    ColorIdx = OrderIdx % Config.Inst.MessageEntryColors.Count,
-                    Obj      = obj
-                };
+            try {
+                foreach (var f in type.GetFields().Where(f => f.IsPublic)) {
+                    var entry = new AeroInspectorEntry
+                    {
+                        Name     = f.Name,
+                        EType    = GetEntryTypeFromType(f.FieldType.IsArray ? f.FieldType.GetElementType() : f.FieldType),
+                        IsArray  = f.FieldType.IsArray,
+                        Ref      = f,
+                        OrderIdx = OrderIdx++,
+                        Size     = f.FieldType.IsArray ? 0 : Genv2.GetTypeSize(f.FieldType.Name),
+                        Offset   = Offset,
+                        ColorIdx = OrderIdx % Config.Inst.MessageEntryColors.Count,
+                        Obj      = obj
+                    };
 
-                if (entry.EType == AeroInspectorEntry.EntryType.String) {
-                    entry.Size = ((string) f.GetValue(obj)).Length;
+                    if (entry.EType == AeroInspectorEntry.EntryType.String && !entry.IsArray) {
+                        entry.Size = ((string) f.GetValue(obj)).Length;
 
-                    // if the string is null terminated add 1 for the 0 at the end
-                    var stringArrtib = f.GetCustomAttribute<AeroStringAttribute>();
-                    if (stringArrtib != null && stringArrtib.Length == 0 && stringArrtib.LengthStr == null && stringArrtib.LengthType == null) {
-                        entry.Size += 1;
-                    }
-                }
-
-                Offset += entry.Size;
-
-                if (entry.IsArray) {
-                    var arr = ((Array) f.GetValue(obj));
-                    if (arr != null) {
-                        // If the array has a length prefixx add that offset
-                        var arrayAttr = f.GetCustomAttribute<AeroArrayAttribute>();
-                        if (arrayAttr is {Typ: { }}) {
-                            var size = Genv2.GetTypeSize(arrayAttr.Typ.Name);
-                            Offset += size;
-                        }
-
-                        for (int i = 0; i < arr.Length; i++) {
-                            var val = arr.GetValue(i);
-
-                            var entry2 = new AeroInspectorEntry
-                            {
-                                Name     = $"{f.Name}[{i}]",
-                                EType    = GetEntryTypeFromType(val.GetType()),
-                                IsArray  = val.GetType().IsArray,
-                                Ref      = f,
-                                OrderIdx = OrderIdx++,
-                                Parent   = entry,
-                                Size     = Genv2.GetTypeSize(f.FieldType.IsArray ? f.FieldType.GetElementType()?.Name : f.FieldType.Name),
-                                Offset   = Offset,
-                                ColorIdx = OrderIdx % Config.Inst.MessageEntryColors.Count,
-                                Obj      = f.GetValue(obj)
-                            };
-
-                            Offset += entry2.Size;
-
-                            entry.SubEntrys.Add(entry2);
+                        // if the string is null terminated add 1 for the 0 at the end
+                        var stringArrtib = f.GetCustomAttribute<AeroStringAttribute>();
+                        if (stringArrtib != null && stringArrtib.Length == 0 && stringArrtib.LengthStr == null && stringArrtib.LengthType == null) {
+                            entry.Size += 1;
                         }
                     }
 
-                    entry.Size = Offset - entry.Offset;
-                }
-                else if (entry.EType == AeroInspectorEntry.EntryType.AeroBlock) {
-                    AddEntriesForType(f.FieldType, f.GetValue(obj), entry);
-                }
+                    Offset += entry.Size;
 
-                if (parentEntry == null) {
-                    Entries.Add(entry);
+                    if (entry.IsArray) {
+                        var arr = ((Array) f.GetValue(obj));
+                        if (arr != null) {
+                            // If the array has a length prefixx add that offset
+                            var arrayAttr = f.GetCustomAttribute<AeroArrayAttribute>();
+                            if (arrayAttr is {Typ: { }}) {
+                                var size = Genv2.GetTypeSize(arrayAttr.Typ.Name);
+                                Offset += size;
+                            }
+
+                            for (int i = 0; i < arr.Length; i++) {
+                                var val = arr.GetValue(i);
+
+                                var entry2 = new AeroInspectorEntry
+                                {
+                                    Name     = $"{f.Name}[{i}]",
+                                    EType    = GetEntryTypeFromType(val.GetType()),
+                                    IsArray  = val.GetType().IsArray,
+                                    Ref      = f,
+                                    OrderIdx = OrderIdx++,
+                                    Parent   = entry,
+                                    Size     = Genv2.GetTypeSize(f.FieldType.IsArray ? f.FieldType.GetElementType()?.Name : f.FieldType.Name),
+                                    Offset   = Offset,
+                                    ColorIdx = entry.ColorIdx,
+                                    Obj      = f.GetValue(obj)
+                                };
+
+                                Offset += entry2.Size;
+
+                                entry.SubEntrys.Add(entry2);
+                            }
+                        }
+
+                        entry.Size = Offset - entry.Offset;
+                    }
+                    else if (entry.EType == AeroInspectorEntry.EntryType.AeroBlock) {
+                        AddEntriesForType(f.FieldType, f.GetValue(obj), entry);
+                    }
+
+                    if (parentEntry == null) {
+                        Entries.Add(entry);
+                    }
+                    else {
+                        parentEntry.SubEntrys.Add(entry);
+                    }
                 }
-                else {
-                    parentEntry.SubEntrys.Add(entry);
-                }
+            }
+            catch (Exception e) {
+                LogError?.Invoke($"Error building inspection tree for {obj}, Error: {e}");
             }
         }
 
         public void Draw()
         {
-            if (ImGui.BeginTable("Inspector Table", 2, ImGuiTableFlags.Borders)) {
-                ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.NoSort, 0.6f);
-                ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.None, 0.4f);
+            if (ImGui.BeginTable("Inspector Table", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
+                ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.NoSort, 0.5f);
+                ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.None, 0.5f);
                 ImGui.TableHeadersRow();
 
                 var indentLevel = 0;
@@ -149,15 +156,21 @@ namespace PacketPeep.Widgets
             (
                 pos,
                 colorBarEndPos,
-                ImGui.ColorConvertFloat4ToU32(Config.Inst.MessageEntryColors[entry.ColorIdx])
+                ImGui.ColorConvertFloat4ToU32(Config.Inst.MessageEntryColors[$"Color {entry.ColorIdx}"])
             );
 
             ImGui.SetCursorScreenPos(new Vector2(colorBarEndPos.X + 5, (pos.Y) + textHeight / 2));
             //ImGui.Text(entry.Name);
-            ImGui.Text($"{entry.Name}, Offset: {entry.Offset}, Size: {entry.Size}");
+            ImGui.Text($"{entry.Name}");
 
             if (isHovered) {
                 HoveredIdx = entry.OrderIdx;
+
+                ImGui.BeginTooltip();
+                ImGui.Text($"Type: {entry.Ref.FieldType}");
+                ImGui.Text($"Offset: {entry.Offset}");
+                ImGui.Text($"Size: {entry.Size}");
+                ImGui.EndTooltip();
             }
 
             // Value display
@@ -171,7 +184,7 @@ namespace PacketPeep.Widgets
                 var state           = ImGui.GetStateStorage();
                 var expandedStateId = ImGui.GetID("expanded");
                 var isExpaneded     = state.GetBool(expandedStateId);
-                if (ImGui.Button(isExpaneded ? "Collapse" : "Expand")) {
+                if (ImGui.Button(isExpaneded ? "Collapse" : "Expand", new Vector2(-1, 0))) {
                     state.SetBool(expandedStateId, !isExpaneded);
                 }
 
@@ -188,7 +201,7 @@ namespace PacketPeep.Widgets
             else {
                 var draw = GetDisplayFunc(entry);
 
-                ImGui.SetNextItemWidth(200f);
+                ImGui.SetNextItemWidth(-1);
                 var hasChanged = draw(entry);
                 ImGui.PopID();
                 return hasChanged;
@@ -210,6 +223,13 @@ namespace PacketPeep.Widgets
                 AeroInspectorEntry.EntryType.Uint   => DrawUInt,
                 AeroInspectorEntry.EntryType.Byte   => DrawByte,
                 AeroInspectorEntry.EntryType.Char   => DrawByte,
+                AeroInspectorEntry.EntryType.Float  => DrawFloat,
+                AeroInspectorEntry.EntryType.Double => DrawDouble,
+
+                AeroInspectorEntry.EntryType.Vector2    => DrawVector2,
+                AeroInspectorEntry.EntryType.Vector3    => DrawVector3,
+                AeroInspectorEntry.EntryType.Vector4    => DrawVector4,
+                AeroInspectorEntry.EntryType.Quaternion => DrawQuaternion,
 
                 AeroInspectorEntry.EntryType.String => DrawText,
 
@@ -236,6 +256,8 @@ namespace PacketPeep.Widgets
         private bool DrawULong(AeroInspectorEntry  entry) => DrawNumber<ulong>(entry, ImGuiDataType.U64);
         private bool DrawShort(AeroInspectorEntry  entry) => DrawNumber<short>(entry, ImGuiDataType.S16);
         private bool DrawUShort(AeroInspectorEntry entry) => DrawNumber<ushort>(entry, ImGuiDataType.U16);
+        private bool DrawFloat(AeroInspectorEntry  entry) => DrawNumber<float>(entry, ImGuiDataType.Float);
+        private bool DrawDouble(AeroInspectorEntry entry) => DrawNumber<double>(entry, ImGuiDataType.Double);
 
         private bool DrawText(AeroInspectorEntry entry)
         {
@@ -244,6 +266,42 @@ namespace PacketPeep.Widgets
             if (changed) entry.SetValue(val);
 
             return changed;
+        }
+
+        private bool DrawVector2(AeroInspectorEntry entry)
+        {
+            var val        = entry.GetValue<Vector2>();
+            var hasChanged = ImTool.Widgets.Vector2(ref val, entry.Name);
+            if (hasChanged) entry.SetValue(val);
+
+            return hasChanged;
+        }
+
+        private bool DrawVector3(AeroInspectorEntry entry)
+        {
+            var val        = entry.GetValue<Vector3>();
+            var hasChanged = ImTool.Widgets.Vector3(ref val, entry.Name);
+            if (hasChanged) entry.SetValue(val);
+
+            return hasChanged;
+        }
+
+        private bool DrawVector4(AeroInspectorEntry entry)
+        {
+            var val        = entry.GetValue<Vector4>();
+            var hasChanged = ImTool.Widgets.Vector4(ref val, entry.Name);
+            if (hasChanged) entry.SetValue(val);
+
+            return hasChanged;
+        }
+
+        private bool DrawQuaternion(AeroInspectorEntry entry)
+        {
+            var val        = entry.GetValue<Quaternion>();
+            var hasChanged = ImTool.Widgets.Quaternion(ref val, entry.Name);
+            if (hasChanged) entry.SetValue(val);
+
+            return hasChanged;
         }
 
         private bool DrawUnknown(AeroInspectorEntry entry)
@@ -274,6 +332,17 @@ namespace PacketPeep.Widgets
             if (eType == AeroInspectorEntry.EntryType.Unknown) {
                 if (type.GetCustomAttribute<AeroBlockAttribute>() != null) {
                     return AeroInspectorEntry.EntryType.AeroBlock;
+                }
+
+                switch (type.ToString()) {
+                    case "System.Numerics.Vector2":
+                        return AeroInspectorEntry.EntryType.Vector2;
+                    case "System.Numerics.Vector3":
+                        return AeroInspectorEntry.EntryType.Vector3;
+                    case "System.Numerics.Vector4":
+                        return AeroInspectorEntry.EntryType.Vector4;
+                    case "System.Numerics.Quaternion":
+                        return AeroInspectorEntry.EntryType.Quaternion;
                 }
             }
 

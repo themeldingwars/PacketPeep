@@ -18,6 +18,8 @@ namespace PacketPeep.Widgets
         public IAero       MsgObj;
         public Action<int> OnClose;
 
+        private uint DockSpaceID;
+
         // Cached data
         private string title;
         private bool   isOpen   = true;
@@ -25,6 +27,7 @@ namespace PacketPeep.Widgets
         private string entityIdStr;
         private string sizeStr;
         private string idStr;
+        private float  dividerHeight = 0;
 
         private HexView       hexView;
         private AeroInspector Inspector;
@@ -37,6 +40,8 @@ namespace PacketPeep.Widgets
             MsgObj      = msgObj;
 
             CreateCachedData();
+
+            DockSpaceID = ImGui.GetID($"dockspace_{title}");
         }
 
         private void CreateCachedData()
@@ -60,6 +65,7 @@ namespace PacketPeep.Widgets
             hexView   = new HexView();
 
             var highlights = new List<HexView.HighlightSection>(Inspector.Entries.Count);
+
             void AddHighlightEntry(AeroInspectorEntry entry)
             {
                 if (entry.Size > 0 && !entry.IsArray) {
@@ -67,7 +73,7 @@ namespace PacketPeep.Widgets
                     {
                         Offset     = entry.Offset,
                         Length     = entry.Size,
-                        Color      = Config.Inst.MessageEntryColors[entry.ColorIdx],
+                        Color      = Config.Inst.MessageEntryColors[$"Color {entry.ColorIdx}"],
                         HoverName  = entry.Name,
                         IsSelected = false
                     };
@@ -81,6 +87,7 @@ namespace PacketPeep.Widgets
                     }
                 }
             }
+
             foreach (var entry in Inspector.Entries) {
                 AddHighlightEntry(entry);
             }
@@ -88,16 +95,30 @@ namespace PacketPeep.Widgets
             hexView.SetData(Msg.Data[headerData.Length..].ToArray(), highlights.ToArray());
         }
 
-        public bool Draw()
+        public unsafe bool Draw()
         {
-            var popUpSize = new Vector2(520, 500);
+            var popUpSize = new Vector2(580, 500);
             ImGui.SetNextWindowSize(popUpSize, ImGuiCond.Appearing);
             ImGui.SetNextWindowPos((ImGui.GetWindowSize() / 2) - (popUpSize / 2), ImGuiCond.Appearing);
             if (!ImGui.Begin(title, ref isOpen, ImGuiWindowFlags.NoSavedSettings)) return isOpen;
 
             DrawHeader();
+
+            var windowSize                        = ImGui.GetWindowSize() - new Vector2(0, 98);
+            if (dividerHeight == 0) dividerHeight = (windowSize.Y / 2);
+
+            ImGui.BeginChild("Hex View", new Vector2(-1, dividerHeight));
             DrawHexView();
+            ImGui.EndChild();
+
+            ImGui.InvisibleButton("Divider", new Vector2(-1, 15f));
+            if (ImGui.IsItemActive()) {
+                dividerHeight += ImGui.GetIO().MouseDelta.Y;
+            }
+
+            ImGui.BeginChild("Inspector", new Vector2(-1, windowSize.Y - dividerHeight));
             DrawInspector();
+            ImGui.EndChild();
 
             ImGui.End();
 
@@ -152,13 +173,11 @@ namespace PacketPeep.Widgets
 
         private void DrawInspector()
         {
-            if (ImGui.CollapsingHeader("Inspector")) {
-                if (MsgObj == null) {
-                    ImGui.Text("No class to use to parse this.");
-                }
-                else {
-                    Inspector.Draw();
-                }
+            if (MsgObj == null) {
+                ImGui.Text("No class to use to parse this.");
+            }
+            else {
+                Inspector.Draw();
             }
         }
     }

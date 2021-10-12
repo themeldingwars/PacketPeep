@@ -69,9 +69,10 @@ namespace PacketPeep.Widgets
         {
             if (MsgInspectors.Any(x => x.SessionName == PacketExp.ActiveFilter.SessionName && x.MessageIdx == idx)) return; // Already open
 
-            var msg          = PacketExp.GetMsg(idx);
-            var msgObj       = PacketExp.GetActiveSession().ParsedMessages[idx];
-            var msgInspector = new MessageInspector(PacketExp.ActiveFilter.SessionName, idx, msg, msgObj);
+            var msg            = PacketExp.GetMsg(idx);
+            var parsedMessages = PacketExp.GetActiveSession().ParsedMessages;
+            var msgObj         = parsedMessages != null && parsedMessages.Count >= idx ? parsedMessages[idx] : null;
+            var msgInspector   = new MessageInspector(PacketExp.ActiveFilter.SessionName, idx, msg, msgObj);
             msgInspector.OnClose = CloseMessageInspector;
             MsgInspectors.Add(msgInspector);
         }
@@ -179,14 +180,15 @@ namespace PacketPeep.Widgets
                 if (ImGui.CollapsingHeader("Highlight Colors", ImGuiTreeNodeFlags.DefaultOpen)) {
                     ImGui.Indent();
                     {
-                        for (int i = 0; i < Config.Inst.MessageEntryColors.Count; i++) {
-                            var color = Config.Inst.MessageEntryColors[i];
-                            ImGui.ColorEdit4($"###Color_{i}", ref color);
-                            Config.Inst.MessageEntryColors[i] = color;
+                        foreach (var kvp in Config.Inst.MessageEntryColors) {
+                            var color = kvp.Value;
+                            ImGui.ColorEdit4(kvp.Key.ToString(), ref color);
+                            Config.Inst.MessageEntryColors[kvp.Key] = color;
                         }
                     }
                     ImGui.Unindent();
                 }
+
                 ImGui.Unindent();
             }
         }
