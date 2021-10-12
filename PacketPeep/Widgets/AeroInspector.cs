@@ -41,6 +41,19 @@ namespace PacketPeep.Widgets
             AddEntriesForType(type, AeroObj);
         }
 
+        private int GetSizeFromTypeName(string typeName)
+        {
+            int size = 0;
+            if (typeName.StartsWith("System.Numerics")) {
+                size = Genv2.GetTypeSize(typeName);
+            }
+            else {
+                size = Genv2.GetTypeSize(typeName.Replace("System.", ""));
+            }
+
+            return size > 0 ? size : 0;
+        }
+
         // Add logic for ifs
         private void AddEntriesForType(Type type, object obj, AeroInspectorEntry parentEntry = null)
         {
@@ -53,7 +66,7 @@ namespace PacketPeep.Widgets
                         IsArray  = f.FieldType.IsArray,
                         Ref      = f,
                         OrderIdx = OrderIdx++,
-                        Size     = f.FieldType.IsArray ? 0 : Genv2.GetTypeSize(f.FieldType.Name),
+                        Size     = f.FieldType.IsArray ? 0 : GetSizeFromTypeName(f.FieldType.IsEnum ? Enum.GetUnderlyingType(f.FieldType).FullName : f.FieldType.FullName),
                         Offset   = Offset,
                         ColorIdx = OrderIdx % Config.Inst.MessageEntryColors.Count,
                         Obj      = obj
@@ -77,7 +90,7 @@ namespace PacketPeep.Widgets
                             // If the array has a length prefixx add that offset
                             var arrayAttr = f.GetCustomAttribute<AeroArrayAttribute>();
                             if (arrayAttr is {Typ: { }}) {
-                                var size = Genv2.GetTypeSize(arrayAttr.Typ.Name);
+                                var size = GetSizeFromTypeName(arrayAttr.Typ.FullName);
                                 Offset += size;
                             }
 
@@ -92,7 +105,7 @@ namespace PacketPeep.Widgets
                                     Ref      = f,
                                     OrderIdx = OrderIdx++,
                                     Parent   = entry,
-                                    Size     = Genv2.GetTypeSize(f.FieldType.IsArray ? f.FieldType.GetElementType()?.Name : f.FieldType.Name),
+                                    Size     = GetSizeFromTypeName(f.FieldType.IsArray ? f.FieldType.GetElementType()?.FullName : f.FieldType.FullName),
                                     Offset   = Offset,
                                     ColorIdx = entry.ColorIdx,
                                     Obj      = f.GetValue(obj)
