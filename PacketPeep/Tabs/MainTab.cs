@@ -14,11 +14,12 @@ namespace PacketPeep.Widgets
         public          bool           ShowOpenCaptureDialog = false;
         public static   bool           ShowAeroDllBrowser    = false;
         public          PacketPeepTool Tool;
-        public static   uint           DockId = 1;
 
         public PacketExplorer PacketExp = new PacketExplorer(PacketPeepTool.PcktDb);
 
         public List<MessageInspector> MsgInspectors = new();
+
+        public override ImGuiDockNodeFlags DockSpaceFlags => ImGuiDockNodeFlags.PassthruCentralNode;
 
         public MainTab()
         {
@@ -32,16 +33,19 @@ namespace PacketPeep.Widgets
             };
         }
 
-        public override void SubmitContent()
+        public override unsafe void SubmitContent()
         {
             //ImGui.ShowDemoWindow();
 
+            var wClass = new ImGuiWindowClass();
+            wClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags.NoWindowMenuButton | ImGuiDockNodeFlags.NoCloseButton | ImGuiDockNodeFlags.NoDockingOverMe;
+            ImGuiNative.igSetNextWindowClass(&wClass);
+            ImGui.Begin("Workspace");
+            
+            ImGui.End();
+
             if (ShowOpenCaptureDialog) DrawCaptureDialog();
             FileBrowser.Draw();
-
-            var size = ImGui.GetWindowSize();
-            size.Y -= 5;
-            ImGui.DockSpace(DockId, size, ImGuiDockNodeFlags.PassthruCentralNode);
 
             PacketExp.Draw();
             PacketPeepTool.Log.DrawWindow();
@@ -63,6 +67,17 @@ namespace PacketPeep.Widgets
                 }, dllDir);
                 ShowAeroDllBrowser = false;
             }
+        }
+
+
+        protected override void CreateDockSpace(Vector2 size)
+        {
+            ImGui.DockBuilderSplitNode(DockSpaceID, ImGuiDir.Left, 0.2f, out var leftId, out var rightId);
+            ImGui.DockBuilderSplitNode(rightId, ImGuiDir.Down, 0.2f, out var rightBottomId, out var rightTopId);
+
+            ImGui.DockBuilderDockWindow("Packet DB", leftId);
+            ImGui.DockBuilderDockWindow("Logs", rightBottomId);
+            ImGui.DockBuilderDockWindow("Workspace", rightTopId);
         }
 
         public void OpenMessageInspector(int idx)
