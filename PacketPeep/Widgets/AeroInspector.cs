@@ -25,9 +25,10 @@ namespace PacketPeep.Widgets
         private const int LINE_HEIGHT     = 25;
         private const int INDENT_DIST     = 5;
 
-        public AeroInspector(IAero aeroObj)
+        public AeroInspector(IAero aeroObj, Action<string> logError)
         {
-            AeroObj = aeroObj;
+            AeroObj  = aeroObj;
+            LogError = logError;
             BuildData();
         }
 
@@ -157,12 +158,12 @@ namespace PacketPeep.Widgets
                         }
                     }
                     else if (attr.Op == AeroIfAttribute.Ops.HasFlag) {
-                        if (!attr.Values.All(x => (Convert.ChangeType(x, keyType) as Enum).HasFlag((Enum)Convert.ChangeType(keyValue.GetValue<object>(), keyType)))) {
+                        if (!attr.Values.All(x => (Convert.ChangeType(keyValue.GetValue<object>(), keyType) as Enum).HasFlag((Enum)Convert.ChangeType(x, keyType)))) {
                             return false;
                         }
                     }
                     else if (attr.Op == AeroIfAttribute.Ops.DoesntHaveFlag) {
-                        if (attr.Values.All(x => (Convert.ChangeType(x, keyType) as Enum).HasFlag((Enum)Convert.ChangeType(keyValue.GetValue<object>(), keyType)))) {
+                        if (attr.Values.All(x => (Convert.ChangeType(keyValue.GetValue<object>(), keyType) as Enum).HasFlag((Enum)Convert.ChangeType(x, keyType)))) {
                             return false;
                         }
                     }

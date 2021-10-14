@@ -6,6 +6,7 @@ using FauCap;
 using ImGuiNET;
 using ImTool;
 using Octokit;
+using PacketPeep.Systems;
 
 namespace PacketPeep.Widgets
 {
@@ -61,7 +62,7 @@ namespace PacketPeep.Widgets
                 entityIdStr = $"{entityId}";
             }
 
-            Inspector = new(MsgObj);
+            Inspector = new(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x));
             hexView   = new HexView();
 
             var highlights = new List<HexView.HighlightSection>(Inspector.Entries.Count);
