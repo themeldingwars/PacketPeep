@@ -222,7 +222,7 @@ namespace PacketPeep.Widgets
                 foreach (var file in files) {
                     PacketPeepTool.PcktDb.LoadCapture(file);
                 }
-            }, Config.Inst.LastCaptureDir);
+            }, Config.Inst.LastCaptureDir, "*.pcap");
 
             ShowOpenCaptureDialog = false;
         }
