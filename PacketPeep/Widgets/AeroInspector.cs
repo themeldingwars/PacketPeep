@@ -296,7 +296,7 @@ namespace PacketPeep.Widgets
             var hasChanged = ImGui.InputScalar($"###{entry.Name}", dataType, (IntPtr) (&val));
             if (hasChanged) entry.SetValue(val);
 
-            if (ImGui.IsItemHovered()) {
+            if (ImGui.IsItemHovered() && entry.Parent is {IsArray: false}) {
                 ImGui.BeginTooltip();
                 var flagsSet = entry.Ref.GetValue(entry.Obj)?.ToString()?.Replace("|", "\n").Replace(",", "\n");
                 if (flagsSet != null) {
