@@ -295,6 +295,15 @@ namespace PacketPeep.Widgets
             var hasChanged = ImGui.InputScalar($"###{entry.Name}", dataType, (IntPtr) (&val));
             if (hasChanged) entry.SetValue(val);
 
+            if (ImGui.IsItemHovered()) {
+                ImGui.BeginTooltip();
+                var flagsSet = entry.Ref.GetValue(entry.Obj)?.ToString()?.Replace("|", "\n").Replace(",", "\n");
+                if (flagsSet != null) {
+                    ImGui.Text($"{flagsSet}");   
+                }
+                ImGui.EndTooltip();
+            }
+
             return hasChanged;
         }
 
