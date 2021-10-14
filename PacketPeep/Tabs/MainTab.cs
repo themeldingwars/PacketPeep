@@ -64,7 +64,7 @@ namespace PacketPeep.Widgets
                     }
 
                     Config.Inst.AeroMessageDllLocation = file;
-                }, dllDir);
+                }, dllDir, "*.dll");
                 ShowAeroDllBrowser = false;
             }
         }
