@@ -59,81 +59,117 @@ namespace PacketPeep.Widgets
         {
             try {
                 foreach (var f in type.GetFields().Where(f => f.IsPublic)) {
-                    var entry = new AeroInspectorEntry
-                    {
-                        Name     = f.Name,
-                        EType    = GetEntryTypeFromType(f.FieldType.IsArray ? f.FieldType.GetElementType() : f.FieldType),
-                        IsArray  = f.FieldType.IsArray,
-                        Ref      = f,
-                        OrderIdx = OrderIdx++,
-                        Size     = f.FieldType.IsArray ? 0 : GetSizeFromTypeName(f.FieldType.IsEnum ? Enum.GetUnderlyingType(f.FieldType).FullName : f.FieldType.FullName),
-                        Offset   = Offset,
-                        ColorIdx = OrderIdx % Config.Inst.MessageEntryColors.Count,
-                        Obj      = obj
-                    };
+                    if (ChecKAeroIf(f)) {
+                        var entry = new AeroInspectorEntry
+                        {
+                            Name     = f.Name,
+                            EType    = GetEntryTypeFromType(f.FieldType.IsArray ? f.FieldType.GetElementType() : f.FieldType),
+                            IsArray  = f.FieldType.IsArray,
+                            Ref      = f,
+                            OrderIdx = OrderIdx++,
+                            Size     = f.FieldType.IsArray ? 0 : GetSizeFromTypeName(f.FieldType.IsEnum ? Enum.GetUnderlyingType(f.FieldType).FullName : f.FieldType.FullName),
+                            Offset   = Offset,
+                            ColorIdx = OrderIdx % Config.Inst.MessageEntryColors.Count,
+                            Obj      = obj
+                        };
 
-                    if (entry.EType == AeroInspectorEntry.EntryType.String && !entry.IsArray) {
-                        entry.Size = ((string) f.GetValue(obj)).Length;
+                        if (entry.EType == AeroInspectorEntry.EntryType.String && !entry.IsArray) {
+                            entry.Size = ((string) f.GetValue(obj)).Length;
 
-                        // if the string is null terminated add 1 for the 0 at the end
-                        var stringArrtib = f.GetCustomAttribute<AeroStringAttribute>();
-                        if (stringArrtib != null && stringArrtib.Length == 0 && stringArrtib.LengthStr == null && stringArrtib.LengthType == null) {
-                            entry.Size += 1;
-                        }
-                    }
-
-                    Offset += entry.Size;
-
-                    if (entry.IsArray) {
-                        var arr = ((Array) f.GetValue(obj));
-                        if (arr != null) {
-                            // If the array has a length prefixx add that offset
-                            var arrayAttr = f.GetCustomAttribute<AeroArrayAttribute>();
-                            if (arrayAttr is {Typ: { }}) {
-                                var size = GetSizeFromTypeName(arrayAttr.Typ.FullName);
-                                Offset += size;
-                            }
-
-                            for (int i = 0; i < arr.Length; i++) {
-                                var val = arr.GetValue(i);
-
-                                var entry2 = new AeroInspectorEntry
-                                {
-                                    Name     = $"{f.Name}[{i}]",
-                                    EType    = GetEntryTypeFromType(val.GetType()),
-                                    IsArray  = val.GetType().IsArray,
-                                    Ref      = f,
-                                    OrderIdx = OrderIdx++,
-                                    Parent   = entry,
-                                    Size     = GetSizeFromTypeName(f.FieldType.IsArray ? f.FieldType.GetElementType()?.FullName : f.FieldType.FullName),
-                                    Offset   = Offset,
-                                    ColorIdx = entry.ColorIdx,
-                                    Obj      = f.GetValue(obj)
-                                };
-
-                                Offset += entry2.Size;
-
-                                entry.SubEntrys.Add(entry2);
+                            // if the string is null terminated add 1 for the 0 at the end
+                            var stringArrtib = f.GetCustomAttribute<AeroStringAttribute>();
+                            if (stringArrtib != null && stringArrtib.Length == 0 && stringArrtib.LengthStr == null && stringArrtib.LengthType == null) {
+                                entry.Size += 1;
                             }
                         }
 
-                        entry.Size = Offset - entry.Offset;
-                    }
-                    else if (entry.EType == AeroInspectorEntry.EntryType.AeroBlock) {
-                        AddEntriesForType(f.FieldType, f.GetValue(obj), entry);
-                    }
+                        Offset += entry.Size;
 
-                    if (parentEntry == null) {
-                        Entries.Add(entry);
-                    }
-                    else {
-                        parentEntry.SubEntrys.Add(entry);
+                        if (entry.IsArray) {
+                            var arr = ((Array) f.GetValue(obj));
+                            if (arr != null) {
+                                // If the array has a length prefixx add that offset
+                                var arrayAttr = f.GetCustomAttribute<AeroArrayAttribute>();
+                                if (arrayAttr is {Typ: { }}) {
+                                    var size = GetSizeFromTypeName(arrayAttr.Typ.FullName);
+                                    Offset += size;
+                                }
+
+                                for (int i = 0; i < arr.Length; i++) {
+                                    var val = arr.GetValue(i);
+
+                                    var entry2 = new AeroInspectorEntry
+                                    {
+                                        Name     = $"{f.Name}[{i}]",
+                                        EType    = GetEntryTypeFromType(val.GetType()),
+                                        IsArray  = val.GetType().IsArray,
+                                        Ref      = f,
+                                        OrderIdx = OrderIdx++,
+                                        Parent   = entry,
+                                        Size     = GetSizeFromTypeName(f.FieldType.IsArray ? f.FieldType.GetElementType()?.FullName : f.FieldType.FullName),
+                                        Offset   = Offset,
+                                        ColorIdx = entry.ColorIdx,
+                                        Obj      = f.GetValue(obj)
+                                    };
+
+                                    Offset += entry2.Size;
+
+                                    entry.SubEntrys.Add(entry2);
+                                }
+                            }
+
+                            entry.Size = Offset - entry.Offset;
+                        }
+                        else if (entry.EType == AeroInspectorEntry.EntryType.AeroBlock) {
+                            AddEntriesForType(f.FieldType, f.GetValue(obj), entry);
+                        }
+
+                        if (parentEntry == null) {
+                            Entries.Add(entry);
+                        }
+                        else {
+                            parentEntry.SubEntrys.Add(entry);
+                        }
                     }
                 }
             }
             catch (Exception e) {
                 LogError?.Invoke($"Error building inspection tree for {obj}, Error: {e}");
             }
+        }
+
+        // If this field has an iff check the logic, if it doesn't it passes by default
+        private bool ChecKAeroIf(FieldInfo f)
+        {
+            var attrs = f.GetCustomAttributes<AeroIfAttribute>();
+            foreach (var attr in attrs) {
+                var keyValue = Entries.FindLast(x => x.Name == attr.Key);
+                if (keyValue != null) {
+                    var keyType = keyValue.Ref.FieldType.IsArray ? keyValue.Ref.FieldType.GetElementType() : keyValue.Ref.FieldType;
+                    if (attr.Op == AeroIfAttribute.Ops.Equal) {
+                        if (!attr.Values.All(x => Convert.ChangeType(x, keyType).Equals(Convert.ChangeType(keyValue.GetValue<object>(), keyType)))) {
+                            return false;
+                        }
+                    }
+                    else if (attr.Op == AeroIfAttribute.Ops.NotEqual) {
+                        if (attr.Values.All(x => Convert.ChangeType(x, keyType).Equals(Convert.ChangeType(keyValue.GetValue<object>(), keyType)))) {
+                            return false;
+                        }
+                    }
+                    else if (attr.Op == AeroIfAttribute.Ops.HasFlag) {
+                        if (!attr.Values.All(x => (Convert.ChangeType(x, keyType) as Enum).HasFlag((Enum)Convert.ChangeType(keyValue.GetValue<object>(), keyType)))) {
+                            return false;
+                        }
+                    }
+                    else if (attr.Op == AeroIfAttribute.Ops.DoesntHaveFlag) {
+                        if (attr.Values.All(x => (Convert.ChangeType(x, keyType) as Enum).HasFlag((Enum)Convert.ChangeType(keyValue.GetValue<object>(), keyType)))) {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
         }
 
         public void Draw()
