@@ -231,6 +231,15 @@ namespace PacketPeep.Systems
             GC.Collect();
         }
 
+
+        public void ReparseSessions()
+        {
+            foreach (var session in Sessions.Values) {
+                session.ParsedMessages.Clear();
+                PacketParser.ParseMessagesForSession(session);
+            }
+        }
+
         public ControllerData GetControllerData(int id)
         {
             id = id == 251 ? 0 : id; // The generic 0 Firefall viw can also be 251

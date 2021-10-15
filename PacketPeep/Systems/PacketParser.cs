@@ -15,6 +15,8 @@ namespace PacketPeep.Systems
         private static PluginLoader Loader;
         private static MethodInfo   GetAeroMessageHandlerMI;
 
+        public static Action OnDllReload;
+
         public static void Init()
         {
             // Warn if we don't have a path for the aero messages dll
@@ -63,6 +65,8 @@ namespace PacketPeep.Systems
 
         private static void LoaderOnReloaded(object sender, PluginReloadedEventArgs eventargs)
         {
+            GetAeroMessageHandlerMI = Loader.LoadDefaultAssembly().GetType("AeroRouting")?.GetMethod("GetNewMessageHandler");
+            OnDllReload?.Invoke();
             PacketPeepTool.Log.AddLogInfo(LogCategories.PacketParser, "DLL reloaded.");
         }
 
@@ -127,6 +131,8 @@ namespace PacketPeep.Systems
                     session.ParsedMessages.Add(msgObj);
                 }
             }
+            
+            GC.Collect();
         }
 
         public static void RefreshDllLocation()

@@ -94,6 +94,16 @@ namespace PacketPeep.Widgets
 
         public void CloseMessageInspector(int idx) => MsgInspectors.RemoveAll(x => x.SessionName == PacketExp.ActiveFilter.SessionName && x.MessageIdx == idx);
 
+        public void RefreshMessageInspectors()
+        {
+            foreach (var inspector in MsgInspectors) {
+                if (PacketPeepTool.PcktDb.Sessions.TryGetValue(inspector.SessionName, out var session)) {
+                    inspector.MsgObj = session.ParsedMessages[inspector.MessageIdx];
+                    inspector.CreateCachedData();   
+                }
+            }
+        }
+
         private void DrawMessageInspectors()
         {
             var toCloseList = new List<MessageInspector>();

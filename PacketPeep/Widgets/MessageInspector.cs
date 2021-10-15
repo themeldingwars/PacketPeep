@@ -40,12 +40,14 @@ namespace PacketPeep.Widgets
             Msg         = msg;
             MsgObj      = msgObj;
 
+            hexView = new HexView();
+            
             CreateCachedData();
 
             DockSpaceID = ImGui.GetID($"dockspace_{title}");
         }
 
-        private void CreateCachedData()
+        public void CreateCachedData()
         {
             var headerData = Utils.GetGssMessageHeader(Msg);
 
@@ -63,7 +65,6 @@ namespace PacketPeep.Widgets
             }
 
             Inspector = new(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x));
-            hexView   = new HexView();
 
             var highlights = new List<HexView.HighlightSection>(Inspector.Entries.Count);
 

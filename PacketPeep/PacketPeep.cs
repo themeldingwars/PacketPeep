@@ -29,6 +29,14 @@ namespace PacketPeep
             
             Config.Inst = config;
             Main.Tool   = this;
+            
+            // Setup dll reloading and reparsing of packets
+            PacketParser.OnDllReload += () =>
+            {
+                PcktDb.ReparseSessions();
+                Main.RefreshMessageInspectors();
+            };
+            
             return true;
         }
 
