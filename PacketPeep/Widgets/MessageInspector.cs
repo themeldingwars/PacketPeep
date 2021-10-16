@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Aero.Gen;
 using FauCap;
@@ -110,7 +111,7 @@ namespace PacketPeep.Widgets
             var popUpSize = new Vector2(580, 500);
             ImGui.SetNextWindowSize(popUpSize, ImGuiCond.Appearing);
             ImGui.SetNextWindowPos((ImGui.GetWindowSize() / 2) - (popUpSize / 2), ImGuiCond.Appearing);
-            if (!ImGui.Begin(title, ref isOpen, ImGuiWindowFlags.NoSavedSettings)) return isOpen;
+            if (!ImGui.Begin(title, ref isOpen, ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.MenuBar)) return isOpen;
 
             DrawHeader();
 
@@ -148,13 +149,8 @@ namespace PacketPeep.Widgets
             var gameMessage = Msg as GameMessage;
             var isGss       = isGameMsg && gameMessage.Channel is Channel.ReliableGss or Channel.UnreliableGss;
 
-            ImGui.Text(Utils.GetMessageName(Msg));
-            ImGui.SameLine(ImGui.GetWindowWidth() - 55);
-            if (ImGui.Button("Json", new Vector2(50, 0))) {
-                JsonView = JsonView == null ? JsonConvert.SerializeObject(MsgObj, Formatting.Indented) : null;
-            }
-
-
+            DrawMenuBar();
+            
             if (ImGui.BeginTable("Message Inspector Header", 5, ImGuiTableFlags.Borders)) {
                 ImGui.TableSetupScrollFreeze(5, 1);
                 ImGui.TableSetupColumn("From", ImGuiTableColumnFlags.WidthFixed, 85f);
@@ -184,6 +180,40 @@ namespace PacketPeep.Widgets
             }
 
             ImGui.NewLine();
+        }
+
+        private void DrawMenuBar()
+        {
+            if (ImGui.BeginMenuBar()) {
+                ImGui.Text(Utils.GetMessageName(Msg));
+
+                ImGui.SameLine(ImGui.GetWindowWidth() - 150);
+                if (ImGui.BeginMenu("Copy")) {
+                    if (ImGui.MenuItem("Copy to C# hex string")) {
+                        var dataCopyStr = string.Join(", ", hexView.Bytes.Select(x => $"0x{x:X}"));
+                        var copyStr     = $"new byte[] {{ {dataCopyStr} }}";
+                        Sdl2Native.SDL_SetClipboardText(copyStr);
+                    }
+
+                    if (ImGui.MenuItem("Copy to js hex string")) {
+                        var dataCopyStr = string.Join(", ", hexView.Bytes.Select(x => $"0x{x:X}"));
+                        var copyStr     = $"new Uint8Array([{dataCopyStr}]);";
+                        Sdl2Native.SDL_SetClipboardText(copyStr);
+                    }
+
+                    if (MsgObj != null && ImGui.MenuItem("Copy to json")) {
+                        Sdl2Native.SDL_SetClipboardText(JsonConvert.SerializeObject(MsgObj, Formatting.Indented));
+                    }
+
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.Button("Toggle Json", new Vector2(100, 0))) {
+                    JsonView = JsonView == null ? JsonConvert.SerializeObject(MsgObj, Formatting.Indented) : null;
+                }
+
+                ImGui.EndMenuBar();
+            }
         }
 
         private void DrawHexView()
