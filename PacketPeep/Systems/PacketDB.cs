@@ -318,7 +318,7 @@ namespace PacketPeep.Systems
             SessionName = "";
         }
 
-        public void AddFilter(Channel chan, bool fromServer, int viewId, int msgId)
+        public void AddFilter(Channel chan, bool fromServer, int viewId, int msgId, bool apply = false)
         {
             var filter = MsgFilterData.Create();
             if (chan is Channel.ReliableGss or Channel.UnreliableGss) {

@@ -187,7 +187,7 @@ namespace PacketPeep.Widgets
             if (ImGui.BeginMenuBar()) {
                 ImGui.Text(Utils.GetMessageName(Msg));
 
-                ImGui.SameLine(ImGui.GetWindowWidth() - 150);
+                ImGui.SameLine(ImGui.GetWindowWidth() - 210);
                 if (ImGui.BeginMenu("Copy")) {
                     if (ImGui.MenuItem("Copy to C# hex string")) {
                         var dataCopyStr = string.Join(", ", hexView.Bytes.Select(x => $"0x{x:X}"));
@@ -205,6 +205,18 @@ namespace PacketPeep.Widgets
                         Sdl2Native.SDL_SetClipboardText(JsonConvert.SerializeObject(MsgObj, Formatting.Indented));
                     }
 
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.BeginMenu("Filters")) {
+                    if (ImGui.MenuItem("Add filter for this type")) {
+                        var headerData = Utils.GetGssMessageHeader(Msg);
+                        
+                        // todo: fix the filtered indexes, shouldn't be on the db
+                        PacketPeepTool.Main.PacketExp.ActiveFilter.AddFilter(headerData.Channel, !headerData.IsCommand, headerData.ControllerId, headerData.MessageId);
+                        PacketPeepTool.PcktDb.ApplyFilter(PacketPeepTool.Main.PacketExp.ActiveFilter);
+                    }
+                    
                     ImGui.EndMenu();
                 }
 
