@@ -30,6 +30,8 @@ namespace PacketPeep
             Config.Inst = config;
             Main.Tool   = this;
             
+            Log.ToggleLevel(LogWindow<LogCategories>.LogLevel.Trace, false);
+            
             // Setup dll reloading and reparsing of packets
             PacketParser.OnDllReload += () =>
             {
