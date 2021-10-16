@@ -102,7 +102,7 @@ namespace PacketPeep.Systems
                         controllerData.Messages.Add(4, "Keyframe Controller");
                         controllerData.Messages.Add(5, "Remove Controller");
                         controllerData.Messages.Add(6, "Remove Controller");
-                        var orderedMsgs2 = gssMsgs.Messages.OrderBy(x => x.Value).ToDictionary(x => x.Value, y => y.Key);
+                        var orderedMsgs2 = controllerData.Messages.OrderBy(x => x.Value).ToDictionary(x => x.Key, y => y.Value);
                         controllerData.Messages.Clear();
                         controllerData.Messages = orderedMsgs2;
 
