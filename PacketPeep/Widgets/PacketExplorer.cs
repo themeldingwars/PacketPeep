@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using FauCap;
 using ImGuiNET;
+using ImTool;
 using PacketPeep.Systems;
 using Vortice.Direct3D11;
 
@@ -29,6 +30,7 @@ namespace PacketPeep.Widgets
         private int                           hoveredIdx          = -1;
         public  Dictionary<string, List<int>> SelectedIdxs        = new();
         private List<int>                     selectedIdsFiltered = new(); // A cached version of the sesion name selectedIds
+        private AckMarkerData                 ackMarker;
 
         // Events
         public Action<int, bool> OnMessageSelected; // When a message is selected / deselects, msg id and if selected or not
@@ -410,6 +412,7 @@ namespace PacketPeep.Widgets
             var isGameMsg  = gameMsg != null;
             var isGss      = gameMsg is {Channel: Channel.ReliableGss or Channel.UnreliableGss};
             var isSelected = selectedIdsFiltered.Contains(idx);
+            var isAnAck    = gameMsg is {Channel: Channel.Control} && (gameMsg.Data[0] == 0x2 || gameMsg.Data[0] == 0x3);
 
             // Packet idx
             if (Config.Inst.PacketList.ShowPacketIdx) {
@@ -463,6 +466,16 @@ namespace PacketPeep.Widgets
             ImGui.TableNextColumn();
             DrawPacketListName(msg, gameMsg);
 
+            // Ack marker
+            if (gameMsg is {IsSequenced: true} && !ackMarker.DontShow && BitConverter.ToUInt16(new[] {gameMsg.Raw[3], gameMsg.Raw[2]}) == ackMarker.SeqNum && ackMarker.AckPacketIdx >= idx) {
+                if ((ackMarker.IsGss && gameMsg.Channel == Channel.ReliableGss || !ackMarker.IsGss && gameMsg.Channel == Channel.Matrix) && ackMarker.FromServer != msg.FromServer) {
+                    ImGui.SameLine();
+                    ThemeManager.PushFont(Font.FAS);
+                    ImGui.TextColored(ImGui.ColorConvertU32ToFloat4(0xff98ff98),"");
+                    ThemeManager.PopFont();
+                }
+            }
+
             // Events and Actions
             ImGui.SameLine();
 
@@ -483,6 +496,16 @@ namespace PacketPeep.Widgets
             if (ImGui.IsItemHovered()) {
                 hoveredIdx = idx;
                 OnMessageHovered?.Invoke(idx);
+                if (isAnAck) {
+                    ackMarker.IsGss        = gameMsg.Data[0] == 0x3;
+                    ackMarker.FromServer   = msg.FromServer;
+                    ackMarker.DontShow     = false;
+                    ackMarker.SeqNum       = BitConverter.ToUInt16(new[] {gameMsg.Data[4], gameMsg.Data[3]});
+                    ackMarker.AckPacketIdx = idx;
+                }
+                else {
+                    ackMarker.DontShow = true;
+                }
             }
 
             // Context Menu
@@ -490,6 +513,10 @@ namespace PacketPeep.Widgets
                 DrawPacketListItemContextMenu(i);
                 ImGui.EndPopup();
             }
+        }
+
+        private void UpdateHoveredForAcks(int idx)
+        {
         }
 
         private void DrawPacketListItemContextMenu(int i)
@@ -647,6 +674,15 @@ namespace PacketPeep.Widgets
             public int                      Id;
             public Dictionary<string, byte> Messages;
             public Dictionary<string, byte> Commands;
+        }
+
+        private struct AckMarkerData
+        {
+            public ushort SeqNum;
+            public bool   IsGss;
+            public bool   FromServer;
+            public bool   DontShow;
+            public int    AckPacketIdx;
         }
     }
 }
