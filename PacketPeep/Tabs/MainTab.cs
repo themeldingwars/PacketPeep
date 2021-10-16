@@ -33,7 +33,7 @@ namespace PacketPeep.Widgets
             };
         }
 
-        public override unsafe void SubmitContent()
+        protected override unsafe void SubmitContent()
         {
             //ImGui.ShowDemoWindow();
 
@@ -59,11 +59,13 @@ namespace PacketPeep.Widgets
                 var dllDir = !string.IsNullOrEmpty(Config.Inst.AeroMessageDllLocation) ? Path.GetDirectoryName(Config.Inst.AeroMessageDllLocation) : "";
                 FileBrowser.OpenFile(file =>
                 {
-                    if (file != Config.Inst.AeroMessageDllLocation) {
+                    var hasFileChanged = file != Config.Inst.AeroMessageDllLocation;
+                    
+                    Config.Inst.AeroMessageDllLocation = file;
+                    
+                    if (hasFileChanged) {
                         PacketParser.RefreshDllLocation();
                     }
-
-                    Config.Inst.AeroMessageDllLocation = file;
                 }, dllDir, "*.dll");
                 ShowAeroDllBrowser = false;
             }
@@ -122,7 +124,7 @@ namespace PacketPeep.Widgets
             }
         }
 
-        public override void SubmitSettings(bool active)
+        protected override void SubmitSettings(bool active)
         {
             //ImGui.Text($"Submitted from DemoTab.SubmitSettings({active})");
 

@@ -34,6 +34,9 @@ namespace PacketPeep.Systems
 
         private static void CreateLoader()
         {
+            if (Config.Inst.AeroMessageDllLocation == null || !File.Exists(Config.Inst.AeroMessageDllLocation))
+                return;
+            
             try {
                 Loader?.Dispose();
 
@@ -49,10 +52,8 @@ namespace PacketPeep.Systems
 
                 if (Loader != null) {
                     Loader.Reloaded         += LoaderOnReloaded;
-                    GetAeroMessageHandlerMI =  Loader.LoadDefaultAssembly().GetType("AeroRouting")?.GetMethod("GetNewMessageHandler");
 
-                    CheckAeroAssemblyVersion();
-                    PacketPeepTool.Log.AddLogInfo(LogCategories.PacketParser, "Dll loaded and message router bound");
+                    PostDllLoad();
                 }
                 else {
                     PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, "Error loading Aero Messages DLL");
@@ -63,9 +64,17 @@ namespace PacketPeep.Systems
             }
         }
 
-        private static void LoaderOnReloaded(object sender, PluginReloadedEventArgs eventargs)
+        private static void PostDllLoad()
         {
             GetAeroMessageHandlerMI = Loader.LoadDefaultAssembly().GetType("AeroRouting")?.GetMethod("GetNewMessageHandler");
+
+            CheckAeroAssemblyVersion();
+            PacketPeepTool.Log.AddLogInfo(LogCategories.PacketParser, "Dll loaded and message router bound");
+        }
+
+        private static void LoaderOnReloaded(object sender, PluginReloadedEventArgs eventargs)
+        {
+            PostDllLoad();
             OnDllReload?.Invoke();
             PacketPeepTool.Log.AddLogInfo(LogCategories.PacketParser, "DLL reloaded.");
         }
