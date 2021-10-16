@@ -115,6 +115,10 @@ namespace PacketPeep.Widgets
 
                                     Offset += entry2.Size;
 
+                                    if (entry2.EType == AeroInspectorEntry.EntryType.AeroBlock) {
+                                        AddEntriesForType(f.FieldType.GetElementType(), val, entry2);
+                                    }
+                                    
                                     entry.SubEntrys.Add(entry2);
                                 }
                             }
@@ -234,7 +238,7 @@ namespace PacketPeep.Widgets
                 var state           = ImGui.GetStateStorage();
                 var expandedStateId = ImGui.GetID("expanded");
                 var isExpaneded     = state.GetBool(expandedStateId);
-                if (ImGui.Button(isExpaneded ? "Collapse" : "Expand", new Vector2(-1, 0))) {
+                if (ImGui.Button(isExpaneded ? $"Collapse ({entry.SubEntrys.Count})" : $"Expand ({entry.SubEntrys.Count})", new Vector2(-1, 0))) {
                     state.SetBool(expandedStateId, !isExpaneded);
                 }
 
