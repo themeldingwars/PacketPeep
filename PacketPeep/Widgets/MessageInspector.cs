@@ -5,8 +5,11 @@ using Aero.Gen;
 using FauCap;
 using ImGuiNET;
 using ImTool;
+using ImTool.SDL;
+using Newtonsoft.Json;
 using Octokit;
 using PacketPeep.Systems;
+using Veldrid.Sdl2;
 
 namespace PacketPeep.Widgets
 {
@@ -32,6 +35,7 @@ namespace PacketPeep.Widgets
 
         private HexView       hexView;
         private AeroInspector Inspector;
+        private string        JsonView = null;
 
         public MessageInspector(string sessionName, int messageIdx, Message msg, IAero msgObj)
         {
@@ -41,7 +45,7 @@ namespace PacketPeep.Widgets
             MsgObj      = msgObj;
 
             hexView = new HexView();
-            
+
             CreateCachedData();
 
             DockSpaceID = ImGui.GetID($"dockspace_{title}");
@@ -95,6 +99,10 @@ namespace PacketPeep.Widgets
             }
 
             hexView.SetData(Msg.Data[headerData.Length..].ToArray(), highlights.ToArray());
+
+            if (JsonView != null) {
+                JsonView = JsonConvert.SerializeObject(MsgObj, Formatting.Indented);
+            }
         }
 
         public unsafe bool Draw()
@@ -106,7 +114,7 @@ namespace PacketPeep.Widgets
 
             DrawHeader();
 
-            var windowSize                        = ImGui.GetWindowSize() - new Vector2(0, 98);
+            var windowSize                        = ImGui.GetWindowSize() - new Vector2(0, 140);
             if (dividerHeight == 0) dividerHeight = (windowSize.Y / 2);
 
             ImGui.BeginChild("Hex View", new Vector2(-1, dividerHeight));
@@ -119,7 +127,14 @@ namespace PacketPeep.Widgets
             }
 
             ImGui.BeginChild("Inspector", new Vector2(-1, windowSize.Y - dividerHeight));
-            DrawInspector();
+            // SHow the json version instead
+            if (JsonView != null) {
+                DrawJsonView();
+            }
+            else {
+                DrawInspector();
+            }
+
             ImGui.EndChild();
 
             ImGui.End();
@@ -134,6 +149,11 @@ namespace PacketPeep.Widgets
             var isGss       = isGameMsg && gameMessage.Channel is Channel.ReliableGss or Channel.UnreliableGss;
 
             ImGui.Text(Utils.GetMessageName(Msg));
+            ImGui.SameLine(ImGui.GetWindowWidth() - 55);
+            if (ImGui.Button("Json", new Vector2(50, 0))) {
+                JsonView = JsonView == null ? JsonConvert.SerializeObject(MsgObj, Formatting.Indented) : null;
+            }
+
 
             if (ImGui.BeginTable("Message Inspector Header", 5, ImGuiTableFlags.Borders)) {
                 ImGui.TableSetupScrollFreeze(5, 1);
@@ -181,6 +201,23 @@ namespace PacketPeep.Widgets
             else {
                 Inspector.Draw();
             }
+        }
+
+        private void DrawJsonView()
+        {
+            ThemeManager.PushFont(Font.FAS);
+            if (ImGui.Button("")) {
+                Sdl2Native.SDL_SetClipboardText(JsonView);
+            }
+            ThemeManager.PopFont();
+                
+            if (ImGui.IsItemHovered()) {
+                ImGui.BeginTooltip();
+                ImGui.Text("Copy the json for this message to the clipboard");
+                ImGui.EndTooltip();
+            }
+
+            ImGui.TextWrapped(JsonView);
         }
     }
 }
