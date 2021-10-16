@@ -81,7 +81,7 @@ namespace PacketPeep.Widgets
                         Offset     = entry.Offset,
                         Length     = entry.Size,
                         Color      = Config.Inst.MessageEntryColors[$"Color {entry.ColorIdx}"],
-                        HoverName  = entry.Name,
+                        HoverName  = entry.GetFullName(),
                         IsSelected = false
                     };
 

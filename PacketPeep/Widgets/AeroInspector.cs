@@ -71,7 +71,8 @@ namespace PacketPeep.Widgets
                             Size     = f.FieldType.IsArray ? 0 : GetSizeFromTypeName(f.FieldType.IsEnum ? Enum.GetUnderlyingType(f.FieldType).FullName : f.FieldType.FullName),
                             Offset   = Offset,
                             ColorIdx = OrderIdx % Config.Inst.MessageEntryColors.Count,
-                            Obj      = obj
+                            Obj      = obj,
+                            Parent = parentEntry
                         };
 
                         if (entry.EType == AeroInspectorEntry.EntryType.String && !entry.IsArray) {
@@ -101,7 +102,7 @@ namespace PacketPeep.Widgets
 
                                     var entry2 = new AeroInspectorEntry
                                     {
-                                        Name     = $"{f.Name}[{i}]",
+                                        Name     = $"[{i}]",
                                         EType    = GetEntryTypeFromType(val.GetType()),
                                         IsArray  = val.GetType().IsArray,
                                         Ref      = f,
@@ -450,6 +451,22 @@ namespace PacketPeep.Widgets
             }
 
             Ref.SetValue(Obj, val);
+        }
+
+        public string GetFullName()
+        {
+            var names = new List<string>(5);
+            //names.Add(Name);
+
+            var currentEntry = this;
+            while (currentEntry != null) {
+                names.Add(currentEntry.Name);
+                currentEntry = currentEntry.Parent;
+            }
+
+            names.Reverse();
+            var fullName = string.Join('.', names);
+            return fullName;
         }
 
         public enum EntryType
