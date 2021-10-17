@@ -272,7 +272,7 @@ namespace PacketPeep.Widgets
                 ImGui.EndTooltip();
             }
 
-            ImGui.TextWrapped(JsonView);
+            ImGui.TextUnformatted(JsonView);
         }
 
         private void MarkEntriesAsHovered(AeroInspectorEntry aeroEntry)
