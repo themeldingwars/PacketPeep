@@ -132,7 +132,7 @@ namespace PacketPeep.Systems
                             PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}");
                         }
                         catch (Exception e) {
-                            PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, $"Error unpacking message for {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)} to {msgObj.GetType().Name}\n{e}");
+                            PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, $"Error unpacking message for {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, Message Idx: {msg.Id} {Utils.GetMessageName(msg)} to {msgObj.GetType().Name}\n{e}");
                         }
                     }
                     
