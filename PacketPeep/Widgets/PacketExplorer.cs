@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Xml.Schema;
 using FauCap;
 using ImGuiNET;
 using ImTool;
@@ -31,6 +33,7 @@ namespace PacketPeep.Widgets
         public  Dictionary<string, List<int>> SelectedIdxs        = new();
         private List<int>                     selectedIdsFiltered = new(); // A cached version of the sesion name selectedIds
         private AckMarkerData                 ackMarker;
+        private float                         scrollTo = -1;
 
         // Events
         public Action<int, bool> OnMessageSelected; // When a message is selected / deselects, msg id and if selected or not
@@ -106,8 +109,11 @@ namespace PacketPeep.Widgets
             hasFiltersChanged = DrawFiltersSource(hasFiltersChanged);
 
             // Message / Controllers
-            ImGui.SetNextItemWidth(-1);
+            ImGui.SetNextItemWidth(-32);
             hasFiltersChanged = DrawFiltersMessages(hasFiltersChanged);
+
+            ImGui.SameLine();
+            DrawMessageFinder();
 
             // If we don't have a session set yet pick the first
             if (ActiveFilter.SessionName == "" && pcktDb.Sessions.Count > 0) {
@@ -122,12 +128,62 @@ namespace PacketPeep.Widgets
                 pcktDb.ApplyFilter(ActiveFilter);
             }
         }
+        
+        private int  messageFinderMsgIdx      = 0;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DrawMessageFinder()
+        {
+            const string FIND_POPUP_NAME = "Find Message";
+
+            ThemeManager.PushFont(Font.FAS);
+            if (ImGui.Button("")) {
+                ImGui.OpenPopup(FIND_POPUP_NAME);
+                messageFinderMsgIdx = 0;
+            }
+            ThemeManager.PopFont();
+            
+            if (ImGui.BeginPopup(FIND_POPUP_NAME)) {
+                if (!ImGui.IsAnyItemFocused() && !ImGui.IsAnyItemActive() && !ImGui.IsMouseClicked(0)) ImGui.SetKeyboardFocusHere();
+                ImGui.InputInt("###Message Idx", ref messageFinderMsgIdx, 0, 0);
+
+                ImGui.SameLine();
+                if (ImGui.Button("Go") || ImGui.IsKeyPressedMap(ImGuiKey.Tab)) {
+                    ImGui.CloseCurrentPopup();
+                    
+                    // Find the offset for the message
+                    var offsetIdx = 0;
+                    if (pcktDb.FilteredIndices.Contains(messageFinderMsgIdx)) {
+                        foreach (var idx in pcktDb.FilteredIndices) {
+                            var message = pcktDb.Sessions[ActiveFilter.SessionName].Session.Messages[idx];
+                            if (message.Id == messageFinderMsgIdx) {
+                                break;
+                            }
+
+                            offsetIdx++;
+                        }
+
+                        scrollTo = offsetIdx * 17;
+                    }
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Scroll to the message in the list. [Tab]");
+
+                ImGui.SameLine();
+                if (ImGui.Button("Open") || ImGui.IsKeyPressedMap(ImGuiKey.Enter)) {
+                    ImGui.CloseCurrentPopup();
+                    ToggleMessageSelect(messageFinderMsgIdx);
+                    OnMessageSelected?.Invoke(messageFinderMsgIdx, false);
+                }
+                if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open the message in an inspector. [Enter]");
+
+                ImGui.EndPopup();
+            }
+        }
 
         private bool DrawFiltersSessions(bool hasFiltersChanged)
         {
             ImGui.Text("Sessions: ");
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(-27);
+            ImGui.SetNextItemWidth(-32);
             if (ImGui.BeginCombo("###Sessions", ActiveFilter.SessionName)) {
                 foreach (var sessionName in pcktDb.Sessions.Keys) {
                     ImGui.Selectable("###SessionSelected", sessionName == ActiveFilter.SessionName);
@@ -150,9 +206,7 @@ namespace PacketPeep.Widgets
 
             ImGui.SameLine();
             const string REMOVE_SESSION_POPUP_NAME = "Remove session?";
-            if (ImGui.Button("X")) {
-                ImGui.OpenPopup(REMOVE_SESSION_POPUP_NAME);
-            }
+            DrawRemoveSessionButton(REMOVE_SESSION_POPUP_NAME);
 
             // Are you sure popup for removing a session
             if (ImGui.BeginPopupModal(REMOVE_SESSION_POPUP_NAME)) {
@@ -175,6 +229,20 @@ namespace PacketPeep.Widgets
             }
 
             return hasFiltersChanged;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DrawRemoveSessionButton(string removeSessionPopupName)
+        {
+            ThemeManager.PushFont(Font.FAS);
+            ImGui.PushStyleColor(ImGuiCol.Button, ImGui.ColorConvertU32ToFloat4(0xFF5057FF));
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ImGui.ColorConvertU32ToFloat4(0xFFa5a1FF));
+            if (ImGui.Button("")) {
+                ImGui.OpenPopup(removeSessionPopupName);
+            }
+
+            ImGui.PopStyleColor(2);
+            ThemeManager.PopFont();
         }
 
         private static void DrawFiltersSessionTooltip(PacketDbSession session)
@@ -385,6 +453,10 @@ namespace PacketPeep.Widgets
                         clipper.End();
                     }
 
+                    if (scrollTo != -1f) {
+                        ImGui.SetScrollY(scrollTo);
+                        scrollTo = -1f;
+                    }
                     ImGui.EndTable();
                 }
 
@@ -471,7 +543,7 @@ namespace PacketPeep.Widgets
                 if ((ackMarker.IsGss && gameMsg.Channel == Channel.ReliableGss || !ackMarker.IsGss && gameMsg.Channel == Channel.Matrix) && ackMarker.FromServer != msg.FromServer) {
                     ImGui.SameLine();
                     ThemeManager.PushFont(Font.FAS);
-                    ImGui.TextColored(ImGui.ColorConvertU32ToFloat4(0xff98ff98),"");
+                    ImGui.TextColored(ImGui.ColorConvertU32ToFloat4(0xff98ff98), "");
                     ThemeManager.PopFont();
                 }
             }
