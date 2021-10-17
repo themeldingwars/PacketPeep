@@ -50,7 +50,10 @@ namespace PacketPeep.Widgets
                 size = Genv2.GetTypeSize(typeName);
             }
             else {
-                size = Genv2.GetTypeSize(typeName.Replace("System.", ""));
+                var name = typeName
+                          .Replace("System.", "")
+                          .Replace("Single", "float");
+                size = Genv2.GetTypeSize(name);
             }
 
             return size > 0 ? size : 0;
