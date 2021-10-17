@@ -64,7 +64,7 @@ namespace PacketPeep.Widgets
         {
             try {
                 foreach (var f in type.GetFields().Where(f => f.IsPublic)) {
-                    if (ChecKAeroIf(f)) {
+                    if (ChecKAeroIf(f, parentEntry?.SubEntrys ?? Entries)) {
                         var entry = new AeroInspectorEntry
                         {
                             Name     = f.Name,
@@ -149,11 +149,11 @@ namespace PacketPeep.Widgets
         }
 
         // If this field has an iff check the logic, if it doesn't it passes by default
-        private bool ChecKAeroIf(FieldInfo f)
+        private bool ChecKAeroIf(FieldInfo f, List<AeroInspectorEntry> scopedEntries)
         {
             var attrs = f.GetCustomAttributes<AeroIfAttribute>();
             foreach (var attr in attrs) {
-                var keyValue = Entries.FindLast(x => x.Name == attr.Key);
+                var keyValue = scopedEntries.FindLast(x => x.Name == attr.Key);
                 if (keyValue != null) {
                     var keyType = keyValue.Ref.FieldType.IsArray ? keyValue.Ref.FieldType.GetElementType() : keyValue.Ref.FieldType;
                     if (attr.Op == AeroIfAttribute.Ops.Equal) {
