@@ -13,8 +13,9 @@ namespace PacketPeep.Widgets
     public class AeroInspector
     {
         public IAero                    AeroObj;
-        public List<AeroInspectorEntry> Entries    = new();
-        public int                      HoveredIdx = -1;
+        public List<AeroInspectorEntry> Entries      = new();
+        public int                      HoveredIdx   = -1;
+        public AeroInspectorEntry       HoveredEntry = null;
         public Action<string>           LogError;
 
         private int OrderIdx;
@@ -72,7 +73,7 @@ namespace PacketPeep.Widgets
                             Offset   = Offset,
                             ColorIdx = OrderIdx % Config.Inst.MessageEntryColors.Count,
                             Obj      = obj,
-                            Parent = parentEntry
+                            Parent   = parentEntry
                         };
 
                         if (entry.EType == AeroInspectorEntry.EntryType.String && !entry.IsArray) {
@@ -119,7 +120,7 @@ namespace PacketPeep.Widgets
                                     if (entry2.EType == AeroInspectorEntry.EntryType.AeroBlock) {
                                         AddEntriesForType(f.FieldType.GetElementType(), val, entry2);
                                     }
-                                    
+
                                     entry.SubEntrys.Add(entry2);
                                 }
                             }
@@ -163,12 +164,12 @@ namespace PacketPeep.Widgets
                         }
                     }
                     else if (attr.Op == AeroIfAttribute.Ops.HasFlag) {
-                        if (!attr.Values.All(x => (Convert.ChangeType(keyValue.GetValue<object>(), keyType) as Enum).HasFlag((Enum)Convert.ChangeType(x, keyType)))) {
+                        if (!attr.Values.All(x => (Convert.ChangeType(keyValue.GetValue<object>(), keyType) as Enum).HasFlag((Enum) Convert.ChangeType(x, keyType)))) {
                             return false;
                         }
                     }
                     else if (attr.Op == AeroIfAttribute.Ops.DoesntHaveFlag) {
-                        if (attr.Values.All(x => (Convert.ChangeType(keyValue.GetValue<object>(), keyType) as Enum).HasFlag((Enum)Convert.ChangeType(x, keyType)))) {
+                        if (attr.Values.All(x => (Convert.ChangeType(keyValue.GetValue<object>(), keyType) as Enum).HasFlag((Enum) Convert.ChangeType(x, keyType)))) {
                             return false;
                         }
                     }
@@ -219,7 +220,8 @@ namespace PacketPeep.Widgets
             ImGui.Text($"{entry.Name}");
 
             if (isHovered) {
-                HoveredIdx = entry.OrderIdx;
+                HoveredIdx   = entry.OrderIdx;
+                HoveredEntry = entry;
 
                 ImGui.BeginTooltip();
                 ImGui.Text($"Type: {entry.Ref.FieldType}");
@@ -305,8 +307,9 @@ namespace PacketPeep.Widgets
                 ImGui.BeginTooltip();
                 var flagsSet = entry.Ref.GetValue(entry.Obj)?.ToString()?.Replace("|", "\n").Replace(",", "\n");
                 if (flagsSet != null) {
-                    ImGui.Text($"{flagsSet}");   
+                    ImGui.Text($"{flagsSet}");
                 }
+
                 ImGui.EndTooltip();
             }
 
@@ -456,7 +459,6 @@ namespace PacketPeep.Widgets
         public string GetFullName()
         {
             var names = new List<string>(5);
-            //names.Add(Name);
 
             var currentEntry = this;
             while (currentEntry != null) {

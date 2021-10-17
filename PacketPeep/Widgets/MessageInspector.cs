@@ -36,7 +36,8 @@ namespace PacketPeep.Widgets
 
         private HexView       hexView;
         private AeroInspector Inspector;
-        private string        JsonView = null;
+        private string        JsonView           = null;
+        private int           lastHoveredItemIdx = -1;
 
         public MessageInspector(string sessionName, int messageIdx, Message msg, IAero msgObj)
         {
@@ -150,7 +151,7 @@ namespace PacketPeep.Widgets
             var isGss       = isGameMsg && gameMessage.Channel is Channel.ReliableGss or Channel.UnreliableGss;
 
             DrawMenuBar();
-            
+
             if (ImGui.BeginTable("Message Inspector Header", 5, ImGuiTableFlags.Borders)) {
                 ImGui.TableSetupScrollFreeze(5, 1);
                 ImGui.TableSetupColumn("From", ImGuiTableColumnFlags.WidthFixed, 85f);
@@ -211,12 +212,12 @@ namespace PacketPeep.Widgets
                 if (ImGui.BeginMenu("Filters")) {
                     if (ImGui.MenuItem("Add filter for this type")) {
                         var headerData = Utils.GetGssMessageHeader(Msg);
-                        
+
                         // todo: fix the filtered indexes, shouldn't be on the db
                         PacketPeepTool.Main.PacketExp.ActiveFilter.AddFilter(headerData.Channel, !headerData.IsCommand, headerData.ControllerId, headerData.MessageId);
                         PacketPeepTool.PcktDb.ApplyFilter(PacketPeepTool.Main.PacketExp.ActiveFilter);
                     }
-                    
+
                     ImGui.EndMenu();
                 }
 
@@ -242,6 +243,17 @@ namespace PacketPeep.Widgets
             }
             else {
                 Inspector.Draw();
+
+                // Hover highlights for when you hover over a variable, show it in the hex view above
+                if (lastHoveredItemIdx != Inspector.HoveredIdx && Inspector.HoveredIdx != -1) {
+                    // Clear the old
+                    for (int i = 0; i < hexView.HighlightsArr.Length; i++) {
+                        hexView.HighlightsArr[i].IsSelected = false;
+                    }
+
+                    MarkEntriesAsHovered(Inspector.HoveredEntry);
+                    lastHoveredItemIdx = Inspector.HoveredIdx;
+                }
             }
         }
 
@@ -251,8 +263,9 @@ namespace PacketPeep.Widgets
             if (ImGui.Button("")) {
                 Sdl2Native.SDL_SetClipboardText(JsonView);
             }
+
             ThemeManager.PopFont();
-                
+
             if (ImGui.IsItemHovered()) {
                 ImGui.BeginTooltip();
                 ImGui.Text("Copy the json for this message to the clipboard");
@@ -260,6 +273,19 @@ namespace PacketPeep.Widgets
             }
 
             ImGui.TextWrapped(JsonView);
+        }
+
+        private void MarkEntriesAsHovered(AeroInspectorEntry aeroEntry)
+        {
+            for (int i = 0; i < hexView.HighlightsArr.Length; i++) {
+                if (hexView.HighlightsArr[i].HoverName == aeroEntry.GetFullName()) {
+                    hexView.HighlightsArr[i].IsSelected = true;
+                }
+            }
+
+            foreach (var subEntry in aeroEntry.SubEntrys) {
+                MarkEntriesAsHovered(subEntry);
+            }
         }
     }
 }
