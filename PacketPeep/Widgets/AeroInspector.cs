@@ -104,27 +104,29 @@ namespace PacketPeep.Widgets
                                 for (int i = 0; i < arr.Length; i++) {
                                     var val = arr.GetValue(i);
 
-                                    var entry2 = new AeroInspectorEntry
-                                    {
-                                        Name     = $"[{i}]",
-                                        EType    = GetEntryTypeFromType(val.GetType()),
-                                        IsArray  = val.GetType().IsArray,
-                                        Ref      = f,
-                                        OrderIdx = OrderIdx++,
-                                        Parent   = entry,
-                                        Size     = GetSizeFromTypeName(f.FieldType.IsArray ? f.FieldType.GetElementType()?.FullName : f.FieldType.FullName),
-                                        Offset   = Offset,
-                                        ColorIdx = entry.ColorIdx,
-                                        Obj      = f.GetValue(obj)
-                                    };
+                                    if (val != null) {
+                                        var entry2 = new AeroInspectorEntry
+                                        {
+                                            Name     = $"[{i}]",
+                                            EType    = GetEntryTypeFromType(val.GetType()),
+                                            IsArray  = val.GetType().IsArray,
+                                            Ref      = f,
+                                            OrderIdx = OrderIdx++,
+                                            Parent   = entry,
+                                            Size     = GetSizeFromTypeName(f.FieldType.IsArray ? f.FieldType.GetElementType()?.FullName : f.FieldType.FullName),
+                                            Offset   = Offset,
+                                            ColorIdx = entry.ColorIdx,
+                                            Obj      = f.GetValue(obj)
+                                        };
 
-                                    Offset += entry2.Size;
+                                        Offset += entry2.Size;
 
-                                    if (entry2.EType == AeroInspectorEntry.EntryType.AeroBlock) {
-                                        AddEntriesForType(f.FieldType.GetElementType(), val, entry2);
+                                        if (entry2.EType == AeroInspectorEntry.EntryType.AeroBlock) {
+                                            AddEntriesForType(f.FieldType.GetElementType(), val, entry2);
+                                        }
+
+                                        entry.SubEntrys.Add(entry2);
                                     }
-
-                                    entry.SubEntrys.Add(entry2);
                                 }
                             }
 
@@ -400,7 +402,7 @@ namespace PacketPeep.Widgets
             };
 
             if (eType == AeroInspectorEntry.EntryType.Unknown) {
-                if (type.GetCustomAttribute<AeroBlockAttribute>() != null) {
+                if (type.GetCustomAttribute<AeroBlockAttribute>() != null || type.GetCustomAttribute<AeroAttribute>() != null) {
                     return AeroInspectorEntry.EntryType.AeroBlock;
                 }
 
