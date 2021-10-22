@@ -539,7 +539,7 @@ namespace PacketPeep.Widgets
             DrawPacketListName(msg, gameMsg);
 
             // Ack marker
-            if (gameMsg is {IsSequenced: true} && !ackMarker.DontShow && BitConverter.ToUInt16(new[] {gameMsg.Raw[3], gameMsg.Raw[2]}) == ackMarker.SeqNum && ackMarker.AckPacketIdx >= idx) {
+            if (gameMsg is {IsSequenced: true} and not SubMessage && !ackMarker.DontShow && BitConverter.ToUInt16(new[] {gameMsg.Raw[3], gameMsg.Raw[2]}) == ackMarker.SeqNum && ackMarker.AckPacketIdx >= idx) {
                 if ((ackMarker.IsGss && gameMsg.Channel == Channel.ReliableGss || !ackMarker.IsGss && gameMsg.Channel == Channel.Matrix) && ackMarker.FromServer != msg.FromServer) {
                     ImGui.SameLine();
                     ThemeManager.PushFont(Font.FAS);
@@ -631,7 +631,7 @@ namespace PacketPeep.Widgets
         {
             try {
                 if (msg.Server == Server.Game) {
-                    var id = gameMsg.Data[0];
+                    var id = msg is SubMessage subMsg ? (byte)(subMsg.EntityId & 0x00000000000000FF) : gameMsg.Data[0];
                     switch (gameMsg.Channel) {
                         case Channel.Control:
                             ImGui.Text(PacketPeepTool.PcktDb.GetMessageName(PacketDb.CONTROL_REF_ID, id));
@@ -644,10 +644,12 @@ namespace PacketPeep.Widgets
                         case Channel.ReliableGss:
                         case Channel.UnreliableGss:
                         {
-                            var msgId    = gameMsg.Data[8];
-                            var viewName = PacketPeepTool.PcktDb.GetViewName(id);
-                            var msgName  = gameMsg.FromServer || id is 0 or 251 ? PacketPeepTool.PcktDb.GetMessageName(id, msgId) : PacketPeepTool.PcktDb.GetCommandName(id, msgId);
-                            ImGui.Text($"{viewName}::{msgName}");
+                            var msgId        = msg is SubMessage subMsg2 ? subMsg2.Data[0] : gameMsg.Data[8];
+                            var viewName     = PacketPeepTool.PcktDb.GetViewName(id);
+                            var msgName      = gameMsg.FromServer || id is 0 or 251 ? PacketPeepTool.PcktDb.GetMessageName(id, msgId) : PacketPeepTool.PcktDb.GetCommandName(id, msgId);
+
+                            var isSubMessage = msg is SubMessage;
+                            ImGui.Text($"{(isSubMessage ? " |-" : "")}{viewName}::{msgName}");
                             break;
                         }
                     }

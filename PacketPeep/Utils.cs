@@ -17,7 +17,7 @@ namespace PacketPeep
             var gameMsg = msg as GameMessage;
 
             if (msg.Server == Server.Game) {
-                var id = gameMsg.Data[0];
+                var id = msg is SubMessage subMsg ? (byte)(subMsg.EntityId & 0x00000000000000FF) : gameMsg.Data[0];
                 switch (gameMsg.Channel) {
                     case Channel.Control:
                         return PacketPeepTool.PcktDb.GetMessageName(PacketDb.CONTROL_REF_ID, id);
@@ -28,7 +28,7 @@ namespace PacketPeep
                     case Channel.ReliableGss:
                     case Channel.UnreliableGss:
                     {
-                        var msgId    = gameMsg.Data[8];
+                        var msgId    = msg is SubMessage subMsg2 ? subMsg2.Data[0] : gameMsg.Data[8];
                         var viewName = PacketPeepTool.PcktDb.GetViewName(id);
                         var msgName  = gameMsg.FromServer || id is 0 or 251 ? PacketPeepTool.PcktDb.GetMessageName(id, msgId) : PacketPeepTool.PcktDb.GetCommandName(id, msgId);
                         return $"{viewName}::{msgName}";
@@ -99,7 +99,13 @@ namespace PacketPeep
                 header.Channel = Channel.Control;
             }
 
-            if (isGss) {
+            if (msg is SubMessage subMessage) {
+                header.ControllerId = (int)(subMessage.EntityId & 0x00000000000000FF);
+                header.MessageId    = msg.Data[0];
+                header.EntityId     = subMessage.EntityId;
+                header.Length       = 1;
+            }
+            else if (isGss) {
                 header.ControllerId = msg.Data[0];
                 header.MessageId    = msg.Data[8];
                 header.EntityId     = BitConverter.ToUInt64(msg.Data[..8]) >> 8;

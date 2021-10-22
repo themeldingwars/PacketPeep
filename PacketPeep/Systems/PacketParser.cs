@@ -122,22 +122,28 @@ namespace PacketPeep.Systems
                     session.ParsedMessages.Add(null);
                 }
                 else {
-                    var msgObj = GetMessageFromIds(msgType, msgSrc, msgHeader.MessageId, msgHeader.ControllerId);
-                    //Debug.WriteLine($"MessageId: {msgHeader.MessageId}, {msgHeader.ControllerId}, msgObj: {msgObj}");
-
-                    if (msgObj != null) {
-                        try {
-                            var data = msg.Data[msgHeader.Length..];
-                            msgObj.Unpack(data);
-                            PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}");
-                        }
-                        catch (Exception e) {
-                            PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, $"Error unpacking message for {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, Message Idx: {msg.Id} {Utils.GetMessageName(msg)} to {msgObj.GetType().Name}\n{e}");
-                        }
+                    if (msg is SubMessage {EntityId: 0}) {
+                        session.ParsedMessages.Add(null);
                     }
+                    else {
+                        var msgObj = GetMessageFromIds(msgType, msgSrc, msgHeader.MessageId, msgHeader.ControllerId);
+                        //Debug.WriteLine($"MessageId: {msgHeader.MessageId}, {msgHeader.ControllerId}, msgObj: {msgObj}");
+
+                        if (msgObj != null) {
+                            try {
+                                var data = msg.Data[msgHeader.Length..];
+                                msgObj.Unpack(data);
+                                PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}");
+                            }
+                            catch (Exception e) {
+                                PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, $"Error unpacking message for {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, Message Idx: {msg.Id} {Utils.GetMessageName(msg)} to {msgObj.GetType().Name}\n{e}");
+                            }
+                        }
                     
-                    // If it was null from not having a class yet still add it to keep the indexes lined up
-                    session.ParsedMessages.Add(msgObj);
+                    
+                        // If it was null from not having a class yet still add it to keep the indexes lined up
+                        session.ParsedMessages.Add(msgObj);
+                    }
                 }
             }
             

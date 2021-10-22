@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -27,7 +28,7 @@ namespace PacketPeep.Systems
         public List<int>             FilteredIndices = new();
 
         // Packet id and names
-        public      Dictionary<int, ControllerData> ControllerList = new();
+        public       Dictionary<int, ControllerData> ControllerList = new();
         public       string                          GetViewName(int id) => GetControllerData(id)?.Name ?? $"{id}";
         public const int                             CONTROL_REF_ID  = -2;
         public const int                             MATRIX_REF_ID   = -1;
@@ -63,7 +64,7 @@ namespace PacketPeep.Systems
             var matrixMsgs = GetSiftMatrixProtocol;
             var gssMsgs    = GetSiftGssProtocol;
             ControllerList.Clear();
-            
+
             gssMsgs.Messages.Add("RoutedMultipleMessage 1", 8);
             gssMsgs.Messages.Add("RoutedMultipleMessage 2", 9);
             var orderedMsgs = gssMsgs.Messages.OrderBy(x => x.Value).ToDictionary(x => x.Key, y => y.Value);
@@ -94,7 +95,7 @@ namespace PacketPeep.Systems
                             Messages = ns.Messages?.ToDictionary(x => x.Value, y => y.Key) ?? new Dictionary<byte, string>(),
                             Commands = ns.Commands?.ToDictionary(x => x.Value, y => y.Key) ?? new Dictionary<byte, string>()
                         };
-                        
+
                         // Inbuilt messages
                         controllerData.Messages.Add(1, "Update");
                         controllerData.Messages.Add(2, "Checksum");
@@ -139,7 +140,7 @@ namespace PacketPeep.Systems
             if (Sessions.ContainsKey(name)) {
                 Sessions.Remove(name);
                 PacketPeepTool.Log.AddLogInfo(LogCategories.PacketDB, $"Removed session {name}");
-                
+
                 GC.Collect();
             }
         }
@@ -183,8 +184,18 @@ namespace PacketPeep.Systems
                                 msgIdCheck |= msgFilter.MsgId == id || msgFilter.MsgId == -1;
                             }
                             else if (gameMsg.Channel is Channel.ReliableGss or Channel.UnreliableGss) {
-                                var cid           = gameMsg.Data[0];
-                                var msgId         = gameMsg.Data[8];
+                                byte cid   = 0;
+                                byte msgId = 0;
+
+                                if (gameMsg is SubMessage subMessage) {
+                                    cid   = (byte) (subMessage.EntityId & 0x00000000000000FF);
+                                    msgId = subMessage.Data[0];
+                                }
+                                else {
+                                    cid   = gameMsg.Data[0];
+                                    msgId = gameMsg.Data[8];
+                                }
+
                                 var viewIsMatched = msgFilter.ViewId == cid || (msgFilter.ViewId == 0 && cid is 0 or 251); // 0 and 251 are generic namespaces
                                 if (msgFilter.MsgId != int.MinValue) {
                                     msgIdCheck |= viewIsMatched && gameMsg.FromServer && (msgFilter.MsgId == msgId || msgFilter.MsgId == -1);
@@ -214,12 +225,12 @@ namespace PacketPeep.Systems
             int idx = 0;
             foreach (var session in sessions) {
                 var sessionName     = $"{name} {idx++}";
-                var gssProtoVer     = (ushort)IPAddress.NetworkToHostOrder((short)session.StreamingProtocol);
+                var gssProtoVer     = (ushort) IPAddress.NetworkToHostOrder((short) session.StreamingProtocol);
                 var siftGssProtoVer = GetPatchByName(SelectedBuildVersion).GSSProtocolVersion;
                 if (gssProtoVer != GetPatchByName(SelectedBuildVersion).GSSProtocolVersion) {
                     PacketPeepTool.Log.AddLogWarn(LogCategories.PacketDB, $"Session {sessionName} GSS Protocol version doesn't match, is {gssProtoVer}, expected {siftGssProtoVer}.");
                 }
-                
+
                 if (!Sessions.ContainsKey(sessionName)) {
                     var packetSession = new PacketDbSession(session, sessionName);
                     Sessions.Add(sessionName, packetSession);
@@ -227,7 +238,7 @@ namespace PacketPeep.Systems
                     PacketPeepTool.Log.AddLogInfo(LogCategories.PacketDB, $"Added session {sessionName}, {session.Datagrams.Count:N0} Datagrams, {session.Packets.Count:N0} Packets, {session.Messages.Count:N0} Messages");
                 }
             }
-            
+
             GC.Collect();
         }
 
@@ -253,15 +264,15 @@ namespace PacketPeep.Systems
         {
             var msgs = GetControllerData(viewId)?.Messages;
             if (msgs != null && msgs.TryGetValue(msgId, out var msgName)) return msgName;
-            
+
             return $"{msgId}";
         }
-        
+
         public string GetCommandName(int viewId, byte cmdId)
         {
             var cmds = GetControllerData(viewId)?.Commands;
             if (cmds != null && cmds.TryGetValue(cmdId, out var cmdName)) return cmdName;
-            
+
             return $"{cmdId}";
         }
     }
@@ -276,6 +287,71 @@ namespace PacketPeep.Systems
         {
             Name    = name;
             Session = session;
+        }
+
+        public void SplitOutRoutedMultipleMessages()
+        {
+            var messages = new List<Message>(Session.Messages.Count);
+        }
+
+        public void SplitOutRoutedMessages(GameMessage gameMessage, ref Dictionary<ushort, ulong> reffIdLookup)
+        {
+            var controllerId = gameMessage.Data[0];
+            var messageId    = gameMessage.Data[8];
+            int offset       = 8;
+            if (messageId == 8) { // Routed multiple
+                do {
+                    bool has2ByteLen = (((gameMessage.Data[offset] & 0x80) >> 7) == 1);
+                    int  length      = has2ByteLen ? gameMessage.Data[offset + 1] | (gameMessage.Data[offset] ^ 0x80) << 8 : gameMessage.Data[offset];
+                    offset = has2ByteLen ? 2 : 1;
+
+                    ushort reffId = BinaryPrimitives.ReadUInt16LittleEndian(gameMessage.Data.Slice(offset, 2));
+                    offset += 2;
+
+                    Span<byte> msgData  = null;
+                    ulong      entityId = 0;
+
+                    if (reffId == 0xFFFF) {
+                        entityId =  BinaryPrimitives.ReadUInt64LittleEndian(gameMessage.Data.Slice(offset, 8));
+                        offset   += 8;
+                        msgData  =  gameMessage.Data.Slice(offset, length - 10).ToArray(); // minus 10 for the length of the reff id and the entityId
+                        offset   += msgData.Length;
+
+                        // Check if the message is a ref id assign
+                        if (msgData[0] == 9) {
+                            var reffIdToAssign = BinaryPrimitives.ReadUInt16LittleEndian(msgData.Slice(1, 2));
+
+                            if (reffIdLookup.ContainsKey(reffIdToAssign)) {
+                                Console.WriteLine($"ReffId ({reffIdToAssign}) already in look up for EntityId: {reffIdLookup[reffIdToAssign]}, reassigning to {entityId}");
+                                reffIdLookup[reffIdToAssign] = entityId;
+                            }
+                            else {
+                                if (reffIdLookup.TryAdd(reffIdToAssign, entityId)) {
+                                    Console.WriteLine($"[Error] Couldn't add ReffId {reffIdToAssign} to  EntityId {entityId}");
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        msgData =  gameMessage.Data.Slice(offset, length - 2).ToArray(); // minus 2 for the reff id
+                        offset  += msgData.Length;
+
+                        // Try and get the entity id for this from the reff id
+                        if (reffIdLookup.TryGetValue(reffId, out var entId)) {
+                            entityId = entId;
+                        }
+                        else {
+                            Console.WriteLine($"Couldn't find EntityId in lookup for: {reffId}");
+                        }
+                    }
+
+                    // Make a fake ish packet for it
+                    var headerData = gameMessage.Raw.Slice(0, 2);
+                    //var subMessage = new GameMessage(Messages.Count, msgData, headerData);
+                    //var subMessage = new GameMessage(Messages.Count, msgData, headerData);
+                    //Messages.Add(subMessage);
+                } while (offset < gameMessage.Data.Length);
+            }
         }
     }
 
@@ -371,6 +447,8 @@ namespace PacketPeep.Systems
             Commands = commands;
         }
 
-        public ControllerData() { }
+        public ControllerData()
+        {
+        }
     }
 }
