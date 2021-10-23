@@ -17,6 +17,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <TrimmerRootAssembly Include="Aero.Gen.*" />
+    </ItemGroup>
+
+    <ItemGroup>
         <Folder Include="Data\Sift" />
     </ItemGroup>
 

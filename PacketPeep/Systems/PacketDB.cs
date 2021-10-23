@@ -43,7 +43,12 @@ namespace PacketPeep.Systems
         private void LoadSiftData()
         {
             try {
-                var dir = Path.Combine(Directory.GetCurrentDirectory(), "Data", "Sift");
+                var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ImTool", typeof(PacketPeepTool).FullName);
+                var dir         = Path.Combine(appDataPath, "Data", "Sift");
+
+                // if the dirs not there yet extract the base files
+                ExtractEmbeddedSiftData(dir, dir);
+
                 SiftData = Sift.Result.Load(dir);
 
                 BuildVerStrings = new List<string>();
@@ -56,6 +61,33 @@ namespace PacketPeep.Systems
             }
             catch (Exception e) {
                 PacketPeepTool.Log.AddLogWarn(LogCategories.PacketDB, $"Couldn't load Sift data, check it exists in Data/Sift");
+            }
+        }
+
+        private static void ExtractEmbeddedSiftData(string dir, string appDataPath)
+        {
+            if (!Directory.Exists(dir)) {
+                var assembly = typeof(PacketPeepTool).Assembly;
+                var files = new[]
+                {
+                    Path.Combine("Patches", "production-prod-1962.0.json"),
+                    Path.Combine("GSS", "19551.json"),
+                    Path.Combine("Matrix", "47464.json"),
+                };
+
+                foreach (var file in files) {
+                    var       embededPath = file.Replace("\\", ".").Replace("/", ".");
+                    var       fileData    = assembly.GetManifestResourceStream($"PacketPeep.Data.Sift.{embededPath}");
+                    using var sR          = new StreamReader(fileData);
+                    var       text        = sR.ReadToEnd();
+
+                    var dstPath = Path.Combine(appDataPath, file);
+                    var dstDir  = Path.GetDirectoryName(dstPath);
+                    if (!Directory.Exists(dstDir))
+                        Directory.CreateDirectory(dstDir);
+                    
+                    File.WriteAllText(dstPath, text);
+                }
             }
         }
 

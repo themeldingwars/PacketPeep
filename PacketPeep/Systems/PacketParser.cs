@@ -68,6 +68,10 @@ namespace PacketPeep.Systems
         {
             GetAeroMessageHandlerMI = Loader.LoadDefaultAssembly().GetType("AeroRouting")?.GetMethod("GetNewMessageHandler");
 
+            if (GetAeroMessageHandlerMI == null) {
+                PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, "GetAeroMessageHandlerMI was null from loaded dll!");
+            }
+
             CheckAeroAssemblyVersion();
             PacketPeepTool.Log.AddLogInfo(LogCategories.PacketParser, "Dll loaded and message router bound");
         }
@@ -132,7 +136,7 @@ namespace PacketPeep.Systems
                         if (msgObj != null) {
                             try {
                                 var data = msg.Data[msgHeader.Length..];
-                                msgObj.Unpack(data);
+                                var amountRead = msgObj.Unpack(data);
                                 PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}");
                             }
                             catch (Exception e) {
