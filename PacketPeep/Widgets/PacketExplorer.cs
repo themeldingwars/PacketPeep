@@ -531,7 +531,12 @@ namespace PacketPeep.Widgets
             if (Config.Inst.PacketList.ShowPacketIds) {
                 ImGui.TableNextColumn();
                 if (msg.Server == Server.Game)
-                    ImGui.Text(isGss ? $"{gameMsg.Data[0]}::{gameMsg.Data[8]}" : $"{gameMsg.Data[0]}");
+                    if (gameMsg is SubMessage subMsg) {
+                        ImGui.Text($"{(byte)(subMsg.EntityId & 0x00000000000000FF)}::{gameMsg.Data[0]}");
+                    }
+                    else {
+                        ImGui.Text(isGss ? $"{gameMsg.Data[0]}::{gameMsg.Data[8]}" : $"{gameMsg.Data[0]}");
+                    }
             }
 
             // Name
