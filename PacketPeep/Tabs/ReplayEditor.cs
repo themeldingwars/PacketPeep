@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Numerics;
+using Aero.Gen.Attributes;
 using ImGuiNET;
 using ImTool;
 using PacketPeep.FauFau.Formats;
@@ -15,41 +17,48 @@ namespace PacketPeep.Tabs
         public          PacketPeepTool Tool;
         private         bool           showOpenReplayDialog = false;
 
-        private Nsr ReplayFile;
+        private Nsr   ReplayFile;
+        private Frame SelectedFrame;
 
         private AeroInspector ReplayInspectorHeaderTemp;
-        
+        private AeroInspector FrameInspector;
+        private HexView       FrameHexView;
+
         protected override unsafe void SubmitContent()
         {
             PacketPeepTool.ActiveTab = TabIds.ReplayEd;
-            
+
             /*var wClass = new ImGuiWindowClass();
             wClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags.NoWindowMenuButton | ImGuiDockNodeFlags.NoCloseButton | ImGuiDockNodeFlags.NoDockingOverMe;
             ImGuiNative.igSetNextWindowClass(&wClass);
             ImGui.Begin("Workspace");
             
             ImGui.End();*/
-            
+
             DrawReplayerHeaderInspector();
+            DrawReplayFrameInspector();
+            DrawReplayFrameHexViewInspector();
             DrawDebug();
 
             if (showOpenReplayDialog) DrawReplayDialog();
             FileBrowser.Draw();
-            
+
             PacketPeepTool.Log.DrawWindow();
         }
-        
+
         protected override void CreateDockSpace(Vector2 size)
         {
             ImGui.DockBuilderSplitNode(DockSpaceID, ImGuiDir.Left, 0.2f, out var leftId, out var rightId);
             ImGui.DockBuilderSplitNode(rightId, ImGuiDir.Down, 0.2f, out var rightBottomId, out var rightTopId);
+            ImGui.DockBuilderSplitNode(rightTopId, ImGuiDir.Left, 0.2f, out var rightTopLeftId, out var rightTopRight);
 
             ImGui.DockBuilderDockWindow("Replay Header", leftId);
             ImGui.DockBuilderDockWindow("Logs", rightBottomId);
             //ImGui.DockBuilderDockWindow("Workspace", rightTopId);
-            ImGui.DockBuilderDockWindow("Replay Debug", rightTopId);
+            ImGui.DockBuilderDockWindow("Replay Debug", rightTopLeftId);
+            ImGui.DockBuilderDockWindow("Replay Frame Inspector", rightTopRight);
         }
-        
+
         public void OpenReplay(string path)
         {
             ReplayFile = new();
@@ -62,22 +71,35 @@ namespace PacketPeep.Tabs
         {
             if (ImGui.Begin("Replay Header")) {
                 if (ReplayFile is {HeaderData: { }}) {
-                    ReplayInspectorHeaderTemp.Draw();   
+                    ReplayInspectorHeaderTemp.Draw();
                 }
             }
-            
+
             ImGui.End();
         }
-        
-        private void DrawReplayerFramesInspector()
+
+        private void DrawReplayFrameInspector()
         {
-            if (ImGui.Begin("Replay Inspector Frames")) {
-                
+            if (ImGui.Begin("Replay Frame Inspector")) {
+                if (FrameInspector != null) {
+                    FrameInspector.Draw();
+                }
             }
-            
+
             ImGui.End();
         }
-        
+
+        private void DrawReplayFrameHexViewInspector()
+        {
+            if (ImGui.Begin("Replay Frame Hex View")) {
+                if (FrameHexView != null) {
+                    FrameHexView.Draw();
+                }
+            }
+
+            ImGui.End();
+        }
+
         private void DrawDebug()
         {
             if (ImGui.Begin("Replay Debug")) {
@@ -86,7 +108,8 @@ namespace PacketPeep.Tabs
 
                     for (var idx = 0; idx < ReplayFile.KeyFrames.Length; idx++) {
                         var keyframe = ReplayFile.KeyFrames[idx];
-                        if (ImGui.CollapsingHeader($"Keyframe: {idx}, Num frames: {keyframe.Frames.Count}")) {
+                        var timeSpan = keyframe.Frames.Last().TimeStamp - keyframe.Frames[0].TimeStamp;
+                        if (ImGui.CollapsingHeader($"Keyframe: {idx}, Num frames: {keyframe.Frames.Count}, TimeSpan: {timeSpan}")) {
                             ImGui.Indent();
 
                             for (int i = 0; i < keyframe.Frames.Count; i++) {
@@ -103,7 +126,28 @@ namespace PacketPeep.Tabs
                                 ImGui.Text($"EntityId: {frame.EntityId}");
                                 ImGui.Text($"MsgIdMaybe: {frame.MsgIdMaybe} ({(hasMsgName ? msgName : frame.MsgIdMaybe)})");
                                 ImGui.Text($"WeirdInt: {frame.WeirdInt}");
-                                
+
+                                if (ImGui.Button($"Open in Inspector {i}")) {
+                                    FrameHexView = new HexView();
+                                    FrameHexView.SetData(frame.Data, Array.Empty<HexView.HighlightSection>());
+                                    
+                                    var msgObj = PacketParser.GetMessageFromIds(AeroMessageIdAttribute.MsgType.GSS, AeroMessageIdAttribute.MsgSrc.Message, frame.MsgIdMaybe, frame.ControllerId);
+
+                                    if (msgObj != null) {
+                                        try {
+                                            var data       = frame.Data[13..];
+                                            var amountRead = msgObj.Unpack(data);
+
+                                            FrameInspector = new AeroInspector(msgObj, null);
+
+                                            //PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}");
+                                        }
+                                        catch (Exception e) {
+                                            PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, $"Error frame {frame.ControllerId}::{frame.MsgIdMaybe}, {msgName} to {msgObj.GetType().Name}\n{e}");
+                                        }
+                                    }
+                                }
+
                                 ImGui.Separator();
                                 ImGui.NewLine();
                             }
@@ -113,10 +157,10 @@ namespace PacketPeep.Tabs
                     }
                 }
             }
-            
+
             ImGui.End();
         }
-        
+
         private void DrawReplayDialog()
         {
             FileBrowser.OpenFile(file =>
@@ -136,6 +180,5 @@ namespace PacketPeep.Tabs
         }
 
         public void OpenReplayDiaglog() => showOpenReplayDialog = true;
-
     }
 }
