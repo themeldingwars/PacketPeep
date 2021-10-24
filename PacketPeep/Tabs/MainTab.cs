@@ -37,6 +37,8 @@ namespace PacketPeep.Widgets
         {
             //ImGui.ShowDemoWindow();
 
+            PacketPeepTool.ActiveTab = TabIds.Main;
+
             var wClass = new ImGuiWindowClass();
             wClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags.NoWindowMenuButton | ImGuiDockNodeFlags.NoCloseButton | ImGuiDockNodeFlags.NoDockingOverMe;
             ImGuiNative.igSetNextWindowClass(&wClass);

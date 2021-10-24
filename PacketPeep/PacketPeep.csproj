@@ -10,10 +10,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aero.Gen" Version="1.1.28" />
+        <PackageReference Include="Aero.Gen" Version="1.1.29" />
         <PackageReference Include="FauCap" Version="1.13.0" />
         <PackageReference Include="ImTool" Version="1.2.7" />
         <PackageReference Include="McMaster.NETCore.Plugins" Version="1.4.0" />
+        <PackageReference Include="SharpCompress" Version="0.30.0" />
     </ItemGroup>
 
     <ItemGroup>

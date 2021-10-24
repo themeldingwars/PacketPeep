@@ -416,6 +416,9 @@ namespace PacketPeep.Widgets
                     case "System.Numerics.Quaternion":
                         return AeroInspectorEntry.EntryType.Quaternion;
                 }
+
+                // So we can show any types
+                return AeroInspectorEntry.EntryType.AeroBlock;
             }
 
             return eType;

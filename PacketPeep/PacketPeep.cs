@@ -3,15 +3,19 @@ using ImGuiNET;
 using ImTool;
 using ImTool.SDL;
 using PacketPeep.Systems;
+using PacketPeep.Tabs;
 using PacketPeep.Widgets;
 
 namespace PacketPeep
 {
     public class PacketPeepTool : Tool<PacketPeepTool, Config>
     {
-        public static LogWindow<LogCategories> Log    = new LogWindow<LogCategories>("Logs");
-        public static PacketDb                 PcktDb = new PacketDb();
-        public static MainTab                  Main   = new MainTab();
+        public static LogWindow<LogCategories> Log         = new LogWindow<LogCategories>("Logs");
+        public static PacketDb                 PcktDb      = new PacketDb();
+        public static MainTab                  Main        = new MainTab();
+        public static ReplayEditorTab          ReplayEdTab = new ReplayEditorTab();
+
+        public static TabIds ActiveTab = TabIds.Main;
 
         //public PacketPeepConfig Config => config;
         
@@ -27,8 +31,9 @@ namespace PacketPeep
             //      routing cmd-line messages to a single instance tool
             //
             
-            Config.Inst = config;
-            Main.Tool   = this;
+            Config.Inst      = config;
+            Main.Tool        = this;
+            ReplayEdTab.Tool = this;
             
             Log.ToggleLevel(LogWindow<LogCategories>.LogLevel.Trace, false);
             
@@ -45,8 +50,20 @@ namespace PacketPeep
         protected override void Load()
         {
             window.AddTab(Main);
+            window.AddTab(ReplayEdTab);
 
-            window.AddWindowButton(new WindowButton("Load Capture", () => Main.OpenCaptureDiaglog()));
+            window.AddWindowButton(new WindowButton("Load Capture / Replay", () =>
+            {
+                switch (ActiveTab) {
+                    case TabIds.Main:
+                        Main.OpenCaptureDiaglog();
+                        break;
+                    
+                    case TabIds.ReplayEd:
+                        ReplayEdTab.OpenReplayDiaglog();
+                        break;
+                }
+            }));
             
             PacketParser.Init();
         }
@@ -57,5 +74,11 @@ namespace PacketPeep
             // you can still do edits to the config,
             // changes will be saved to disk when this method returns
         }
+    }
+
+    public enum TabIds : byte
+    {
+        Main,
+        ReplayEd
     }
 }
