@@ -14,6 +14,7 @@ namespace PacketPeep
         public static PacketDb                 PcktDb      = new PacketDb();
         public static MainTab                  Main        = new MainTab();
         public static ReplayEditorTab          ReplayEdTab = new ReplayEditorTab();
+        public static TinkerTab                Tinker      = new();
 
         public static TabIds ActiveTab = TabIds.Main;
 
@@ -51,6 +52,7 @@ namespace PacketPeep
         {
             window.AddTab(Main);
             window.AddTab(ReplayEdTab);
+            window.AddTab(Tinker);
 
             window.AddWindowButton(new WindowButton("Load Capture / Replay", () =>
             {
@@ -79,6 +81,7 @@ namespace PacketPeep
     public enum TabIds : byte
     {
         Main,
-        ReplayEd
+        ReplayEd,
+        Tinker
     }
 }

@@ -134,9 +134,19 @@ namespace PacketPeep.FauFau.Formats
         public int FictionalYear;
         float      FictionalTime;
 
-        [AeroString] public string FictionalDateString;
+        [AeroString(128)] public string FictionalDateString;
 
-        [AeroArray(31)] public byte[] Unk3;
+        [AeroArray(18)] public byte[] Unk3;
+
+        public double TimeOfDay;
+        
+        [AeroArray(5)] public byte[] Unk4;
+    }
+
+    [Aero]
+    public partial class JustMeta
+    {
+        public MetaSection Meta;
     }
 
     [Aero]

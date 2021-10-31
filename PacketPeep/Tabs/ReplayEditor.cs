@@ -8,6 +8,7 @@ using ImTool;
 using PacketPeep.FauFau.Formats;
 using PacketPeep.Systems;
 using PacketPeep.Widgets;
+using Veldrid.Sdl2;
 
 namespace PacketPeep.Tabs
 {
@@ -24,9 +25,18 @@ namespace PacketPeep.Tabs
         private AeroInspector FrameInspector;
         private HexView       FrameHexView;
 
+        private ReplayServer ReplayServer = new ReplayServer();
+        private bool         FirstRun     = true;
+
         protected override unsafe void SubmitContent()
         {
             PacketPeepTool.ActiveTab = TabIds.ReplayEd;
+
+            if (FirstRun) {
+                ReplayServer.Start();
+
+                FirstRun = false;
+            }
 
             /*var wClass = new ImGuiWindowClass();
             wClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags.NoWindowMenuButton | ImGuiDockNodeFlags.NoCloseButton | ImGuiDockNodeFlags.NoDockingOverMe;
@@ -65,6 +75,7 @@ namespace PacketPeep.Tabs
             ReplayFile.Read(path);
 
             ReplayInspectorHeaderTemp = new(ReplayFile.HeaderData, null);
+            ReplayServer.ReplayFile   = ReplayFile;
         }
 
         private void DrawReplayerHeaderInspector()
@@ -112,44 +123,57 @@ namespace PacketPeep.Tabs
                         if (ImGui.CollapsingHeader($"Keyframe: {idx}, Num frames: {keyframe.Frames.Count}, TimeSpan: {timeSpan}")) {
                             ImGui.Indent();
 
-                            for (int i = 0; i < keyframe.Frames.Count; i++) {
-                                var frame = keyframe.Frames[i];
-                                ImGui.Text($"Frame idx: {i}");
-                                ImGui.Text($"Time: {frame.TimeStamp} ({TimeSpan.FromMilliseconds(frame.TimeStamp)})");
-                                ImGui.Text($"Length: {frame.Length}");
-                                ImGui.Text($"Unk1: {frame.Unk1}");
-                                ImGui.Text($"Unk2: {frame.Unk2}");
+                            try {
+                                for (int i = 0; i < keyframe.Frames.Count; i++) {
+                                    var frame = keyframe.Frames[i];
+                                    ImGui.Text($"Frame idx: {i}");
+                                    ImGui.Text($"Time: {frame.TimeStamp} ({TimeSpan.FromMilliseconds(frame.TimeStamp)})");
+                                    ImGui.Text($"Length: {frame.Length}");
+                                    ImGui.Text($"Unk1: {frame.Unk1}");
+                                    ImGui.Text($"Unk2: {frame.Unk2}");
 
-                                var controllerData = PacketPeepTool.PcktDb.ControllerList[frame.ControllerId];
-                                var hasMsgName     = controllerData.Messages.TryGetValue(frame.MsgIdMaybe, out var msgName);
-                                ImGui.Text($"ControllerId: {frame.ControllerId} ({controllerData.Name})");
-                                ImGui.Text($"EntityId: {frame.EntityId}");
-                                ImGui.Text($"MsgIdMaybe: {frame.MsgIdMaybe} ({(hasMsgName ? msgName : frame.MsgIdMaybe)})");
-                                ImGui.Text($"WeirdInt: {frame.WeirdInt}");
+                                    var controllerData = PacketPeepTool.PcktDb.ControllerList[frame.ControllerId];
+                                    var hasMsgName     = controllerData.Messages.TryGetValue(frame.MsgIdMaybe, out var msgName);
+                                    ImGui.Text($"ControllerId: {frame.ControllerId} ({controllerData.Name})");
+                                    ImGui.Text($"EntityId: {frame.EntityId}");
+                                    ImGui.Text($"MsgIdMaybe: {frame.MsgIdMaybe} ({(hasMsgName ? msgName : frame.MsgIdMaybe)})");
+                                    ImGui.Text($"WeirdInt: {frame.WeirdInt}");
 
-                                if (ImGui.Button($"Open in Inspector {i}")) {
-                                    FrameHexView = new HexView();
-                                    FrameHexView.SetData(frame.Data, Array.Empty<HexView.HighlightSection>());
-                                    
-                                    var msgObj = PacketParser.GetMessageFromIds(AeroMessageIdAttribute.MsgType.GSS, AeroMessageIdAttribute.MsgSrc.Message, frame.MsgIdMaybe, frame.ControllerId);
+                                    if (ImGui.Button($"Open in Inspector {i}")) {
+                                        FrameHexView = new HexView();
+                                        FrameHexView.SetData(frame.Data, Array.Empty<HexView.HighlightSection>());
 
-                                    if (msgObj != null) {
-                                        try {
-                                            var data       = frame.Data[13..];
-                                            var amountRead = msgObj.Unpack(data);
+                                        var msgObj = PacketParser.GetMessageFromIds(AeroMessageIdAttribute.MsgType.GSS, AeroMessageIdAttribute.MsgSrc.Message, frame.MsgIdMaybe, frame.ControllerId);
 
-                                            FrameInspector = new AeroInspector(msgObj, null);
+                                        if (msgObj != null) {
+                                            try {
+                                                var data       = frame.Data[13..];
+                                                var amountRead = msgObj.Unpack(data);
 
-                                            //PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}");
-                                        }
-                                        catch (Exception e) {
-                                            PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, $"Error frame {frame.ControllerId}::{frame.MsgIdMaybe}, {msgName} to {msgObj.GetType().Name}\n{e}");
+                                                FrameInspector = new AeroInspector(msgObj, null);
+
+                                                //PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}");
+                                            }
+                                            catch (Exception e) {
+                                                PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, $"Error frame {frame.ControllerId}::{frame.MsgIdMaybe}, {msgName} to {msgObj.GetType().Name}\n{e}");
+                                            }
                                         }
                                     }
-                                }
 
-                                ImGui.Separator();
-                                ImGui.NewLine();
+                                    ImGui.SameLine();
+                                    if (ImGui.Button($"Copy as C# byte array ###{i}")) {
+                                        var data        = frame.Data;
+                                        var dataCopyStr = string.Join(", ", data.Select(x => $"0x{x:X}"));
+                                        var copyStr     = $"new byte[] {{ {dataCopyStr} }}";
+                                        Sdl2Native.SDL_SetClipboardText(copyStr);
+                                    }
+
+                                    ImGui.Separator();
+                                    ImGui.NewLine();
+                                }
+                            }
+                            catch {
+                                
                             }
 
                             ImGui.Unindent();

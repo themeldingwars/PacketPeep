@@ -184,22 +184,26 @@ namespace PacketPeep.Widgets
             return true;
         }
 
-        public void Draw()
+        public bool Draw()
         {
+            bool hasAnyChanged = false;
+            
             if (ImGui.BeginTable("Inspector Table", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
                 ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.NoSort, 0.5f);
                 ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.None, 0.5f);
                 ImGui.TableHeadersRow();
 
-                var indentLevel = 0;
+                var  indentLevel   = 0;
                 foreach (var entry in Entries) {
                     ImGui.TableNextRow(ImGuiTableRowFlags.None, LINE_HEIGHT);
-                    DrawEntry(entry, ref indentLevel);
+                    hasAnyChanged |= DrawEntry(entry, ref indentLevel);
                     indentLevel = 0;
                 }
 
                 ImGui.EndTable();
             }
+
+            return hasAnyChanged;
         }
 
         private bool DrawEntry(AeroInspectorEntry entry, ref int indentLevel)
@@ -462,6 +466,8 @@ namespace PacketPeep.Widgets
             }
 
             Ref.SetValue(Obj, val);
+            
+            Parent?.SetValue<object>(Obj);
         }
 
         public string GetFullName()

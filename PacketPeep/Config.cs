@@ -28,6 +28,8 @@ namespace PacketPeep
         public bool ShowParsedValuesInSide    = false;
         public bool ShowParsedValuesInToolTip = true;
 
+        public ReplayServerSettings ReplayServer { get; set; } = new ();
+
         // override the default window settings
         public Config()
         {
@@ -147,6 +149,11 @@ namespace PacketPeep
             UGSS,
             RGSS,
             Jack
+        }
+
+        public class ReplayServerSettings
+        {
+            public ushort ListenPort = 44501;
         }
     }
 }
