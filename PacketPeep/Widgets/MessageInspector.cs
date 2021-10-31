@@ -36,6 +36,7 @@ namespace PacketPeep.Widgets
 
         private HexView       hexView;
         private AeroInspector Inspector;
+        private MsgTester     msgTester           = null;
         private string        JsonView           = null;
         private int           lastHoveredItemIdx = -1;
 
@@ -141,6 +142,8 @@ namespace PacketPeep.Widgets
 
             ImGui.End();
 
+            msgTester?.Draw();
+
             return isOpen;
         }
 
@@ -188,7 +191,7 @@ namespace PacketPeep.Widgets
             if (ImGui.BeginMenuBar()) {
                 ImGui.Text(Utils.GetMessageName(Msg));
 
-                ImGui.SameLine(ImGui.GetWindowWidth() - 210);
+                ImGui.SameLine(ImGui.GetWindowWidth() - 180);
                 if (ImGui.BeginMenu("Copy")) {
                     if (ImGui.MenuItem("Copy to C# hex string")) {
                         var dataCopyStr = string.Join(", ", hexView.Bytes.Select(x => $"0x{x:X}"));
@@ -221,9 +224,17 @@ namespace PacketPeep.Widgets
                     ImGui.EndMenu();
                 }
 
-                if (ImGui.Button("Toggle Json", new Vector2(100, 0))) {
+                if (ImGui.Button("Json", new Vector2(40, 0))) {
                     JsonView = JsonView == null ? JsonConvert.SerializeObject(MsgObj, Formatting.Indented) : null;
                 }
+
+                ThemeManager.PushFont(Font.FAS);
+                if (ImGui.Button("")) {
+                    if (MsgObj != null) {
+                        msgTester = msgTester != null ? null : new MsgTester(Msg, MsgObj);   
+                    }
+                }
+                ThemeManager.PopFont();
 
                 ImGui.EndMenuBar();
             }
