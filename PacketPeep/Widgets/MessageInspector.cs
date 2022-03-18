@@ -244,6 +244,7 @@ namespace PacketPeep.Widgets
         {
             hexView.ShowSideParsedValues = Config.Inst.ShowParsedValuesInSide;
             hexView.ShowParsedValuesInTT = Config.Inst.ShowParsedValuesInToolTip;
+            
             hexView.Draw();
         }
 

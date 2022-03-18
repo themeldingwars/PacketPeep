@@ -23,7 +23,7 @@ namespace PacketPeep.Widgets
 
         // Display settings
         private const int COLOR_BAR_WIDTH = 10;
-        private const int LINE_HEIGHT     = 25;
+        private const int LINE_HEIGHT     = 30;
         private const int INDENT_DIST     = 5;
 
         public AeroInspector(IAero aeroObj, Action<string> logError)
@@ -186,6 +186,7 @@ namespace PacketPeep.Widgets
 
         public void Draw()
         {
+            FontManager.PushFont("Regular_Small");
             if (ImGui.BeginTable("Inspector Table", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
                 ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.NoSort, 0.5f);
                 ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.None, 0.5f);
@@ -200,6 +201,7 @@ namespace PacketPeep.Widgets
 
                 ImGui.EndTable();
             }
+            FontManager.PopFont();
         }
 
         private bool DrawEntry(AeroInspectorEntry entry, ref int indentLevel)

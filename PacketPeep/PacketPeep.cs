@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using ImGuiNET;
 using ImTool;
 using ImTool.SDL;
@@ -44,6 +45,8 @@ namespace PacketPeep
 
         protected override void Load()
         {
+            FontManager.AddFont(new Font("Regular_Small", 14, new FontFile("ImTool.Fonts.SourceSansPro-Regular.ttf", new Vector2(0, -1))));
+            
             Window.AddTab(Main);
 
             Window.AddWindowButton(new WindowButton("Load Capture", () => Main.OpenCaptureDiaglog()));

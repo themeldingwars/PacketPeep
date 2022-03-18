@@ -58,7 +58,9 @@ namespace PacketPeep.Widgets
             if (!SelectedIdxs.TryGetValue(ActiveFilter.SessionName, out selectedIdsFiltered)) selectedIdsFiltered = new List<int>();
 
             DrawFilters();
+            
             DrawPacketList();
+
             ImGui.End();
 
             // Apply filters from context menus etc
@@ -654,7 +656,7 @@ namespace PacketPeep.Widgets
                             var msgName      = gameMsg.FromServer || id is 0 or 251 ? PacketPeepTool.PcktDb.GetMessageName(id, msgId) : PacketPeepTool.PcktDb.GetCommandName(id, msgId);
 
                             var isSubMessage = msg is SubMessage;
-                            ImGui.Text($"{(isSubMessage ? " |-" : "")}{viewName}::{msgName}");
+                            ImGui.Text($"{(isSubMessage ? "\t|-- " : "")}{viewName}::{msgName}");
                             break;
                         }
                     }

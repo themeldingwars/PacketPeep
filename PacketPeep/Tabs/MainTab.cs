@@ -37,6 +37,7 @@ namespace PacketPeep.Widgets
         {
             //ImGui.ShowDemoWindow();
 
+            FontManager.PushFont("Regular_Small");
             var wClass = new ImGuiWindowClass();
             wClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags.NoWindowMenuButton | ImGuiDockNodeFlags.NoCloseButton | ImGuiDockNodeFlags.NoDockingOverMe;
             ImGuiNative.igSetNextWindowClass(&wClass);
@@ -69,6 +70,8 @@ namespace PacketPeep.Widgets
                 }, dllDir, "*.dll");
                 ShowAeroDllBrowser = false;
             }
+            
+            FontManager.PopFont();
         }
 
 
