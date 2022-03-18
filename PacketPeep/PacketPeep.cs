@@ -27,7 +27,7 @@ namespace PacketPeep
             //      routing cmd-line messages to a single instance tool
             //
             
-            Config.Inst = config;
+            Config.Inst = Config;
             Main.Tool   = this;
             
             Log.ToggleLevel(LogWindow<LogCategories>.LogLevel.Trace, false);
@@ -44,9 +44,9 @@ namespace PacketPeep
 
         protected override void Load()
         {
-            window.AddTab(Main);
+            Window.AddTab(Main);
 
-            window.AddWindowButton(new WindowButton("Load Capture", () => Main.OpenCaptureDiaglog()));
+            Window.AddWindowButton(new WindowButton("Load Capture", () => Main.OpenCaptureDiaglog()));
             
             PacketParser.Init();
         }

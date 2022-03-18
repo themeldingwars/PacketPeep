@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
         <VersionSuffix>1.0.0.$([System.DateTime]::UtcNow.ToString(hhss))</VersionSuffix>
         <Version Condition=" '$(VersionSuffix)' != '' ">$(VersionSuffix)</Version>
         <Deterministic>false</Deterministic>
@@ -12,7 +12,7 @@
     <ItemGroup>
         <PackageReference Include="Aero.Gen" Version="1.1.29" />
         <PackageReference Include="FauCap" Version="1.13.0" />
-        <PackageReference Include="ImTool" Version="1.2.7" />
+        <PackageReference Include="ImTool" Version="1.3.3" />
         <PackageReference Include="McMaster.NETCore.Plugins" Version="1.4.0" />
     </ItemGroup>
 

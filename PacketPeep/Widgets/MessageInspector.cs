@@ -228,13 +228,13 @@ namespace PacketPeep.Widgets
                     JsonView = JsonView == null ? JsonConvert.SerializeObject(MsgObj, Formatting.Indented) : null;
                 }
 
-                ThemeManager.PushFont(Font.FAS);
+                FontManager.PushFont("FAS");
                 if (ImGui.Button("")) {
                     if (MsgObj != null) {
                         msgTester = msgTester != null ? null : new MsgTester(Msg, MsgObj);   
                     }
                 }
-                ThemeManager.PopFont();
+                FontManager.PopFont();
 
                 ImGui.EndMenuBar();
             }
@@ -270,12 +270,12 @@ namespace PacketPeep.Widgets
 
         private void DrawJsonView()
         {
-            ThemeManager.PushFont(Font.FAS);
+            FontManager.PushFont("FAS");
             if (ImGui.Button("")) {
                 Sdl2Native.SDL_SetClipboardText(JsonView);
             }
 
-            ThemeManager.PopFont();
+            FontManager.PopFont();
 
             if (ImGui.IsItemHovered()) {
                 ImGui.BeginTooltip();

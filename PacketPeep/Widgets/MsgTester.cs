@@ -198,13 +198,13 @@ namespace PacketPeep.Widgets
 
             ImGui.TableNextColumn();
             if (pass != null) {
-                ThemeManager.PushFont(Font.FAS);
+                FontManager.PushFont("FAS");
                 ImGui.PushStyleColor(ImGuiCol.Text, pass.Value ? 0xff98ff98 : 0xFF5057FF);
                 {
                     ImGui.Text(pass.Value ? "" : "");
                 }
                 ImGui.PopStyleColor();
-                ThemeManager.PopFont();
+                FontManager.PopFont();
             }
         }
 

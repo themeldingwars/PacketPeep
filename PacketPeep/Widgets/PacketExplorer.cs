@@ -135,12 +135,12 @@ namespace PacketPeep.Widgets
         {
             const string FIND_POPUP_NAME = "Find Message";
 
-            ThemeManager.PushFont(Font.FAS);
+            FontManager.PushFont("FAS");
             if (ImGui.Button("")) {
                 ImGui.OpenPopup(FIND_POPUP_NAME);
                 messageFinderMsgIdx = 0;
             }
-            ThemeManager.PopFont();
+            FontManager.PopFont();
             
             if (ImGui.BeginPopup(FIND_POPUP_NAME)) {
                 if (!ImGui.IsAnyItemFocused() && !ImGui.IsAnyItemActive() && !ImGui.IsMouseClicked(0)) ImGui.SetKeyboardFocusHere();
@@ -234,7 +234,7 @@ namespace PacketPeep.Widgets
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void DrawRemoveSessionButton(string removeSessionPopupName)
         {
-            ThemeManager.PushFont(Font.FAS);
+            FontManager.PushFont("FAS");
             ImGui.PushStyleColor(ImGuiCol.Button, ImGui.ColorConvertU32ToFloat4(0xFF5057FF));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, ImGui.ColorConvertU32ToFloat4(0xFFa5a1FF));
             if (ImGui.Button("")) {
@@ -242,7 +242,7 @@ namespace PacketPeep.Widgets
             }
 
             ImGui.PopStyleColor(2);
-            ThemeManager.PopFont();
+            FontManager.PopFont();
         }
 
         private static void DrawFiltersSessionTooltip(PacketDbSession session)
@@ -547,9 +547,9 @@ namespace PacketPeep.Widgets
             if (gameMsg is {IsSequenced: true} and not SubMessage && !ackMarker.DontShow && BitConverter.ToUInt16(new[] {gameMsg.Raw[3], gameMsg.Raw[2]}) == ackMarker.SeqNum && ackMarker.AckPacketIdx >= idx) {
                 if ((ackMarker.IsGss && gameMsg.Channel == Channel.ReliableGss || !ackMarker.IsGss && gameMsg.Channel == Channel.Matrix) && ackMarker.FromServer != msg.FromServer) {
                     ImGui.SameLine();
-                    ThemeManager.PushFont(Font.FAS);
+                    FontManager.PushFont("FAS");
                     ImGui.TextColored(ImGui.ColorConvertU32ToFloat4(0xff98ff98), "");
-                    ThemeManager.PopFont();
+                    FontManager.PopFont();
                 }
             }
 
