@@ -63,8 +63,14 @@ namespace PacketPeep.Widgets
         private void AddEntriesForType(Type type, object obj, AeroInspectorEntry parentEntry = null)
         {
             try {
-                foreach (var f in type.GetFields().Where(f => f.IsPublic)) {
+
+                var isView = type.CustomAttributes.Count(x => x.ToString() == "[Aero.Gen.Attributes.AeroAttribute((Boolean)True)]") == 1;
+                foreach (var f in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).Where(f => isView ? (f.IsPublic || f.IsPrivate) : f.IsPublic)) {
                     if (ChecKAeroIf(f, parentEntry?.SubEntrys ?? Entries)) {
+                        if (new[] {"DirtyBitfield", "NullablesBitfield"}.Any(x => f.Name.StartsWith(x))) { // Skip reserved fields
+                            continue;
+                        }
+                        
                         var entry = new AeroInspectorEntry
                         {
                             Name     = f.Name,
@@ -201,6 +207,7 @@ namespace PacketPeep.Widgets
 
                 ImGui.EndTable();
             }
+
             FontManager.PopFont();
         }
 
