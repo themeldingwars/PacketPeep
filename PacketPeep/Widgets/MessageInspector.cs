@@ -73,7 +73,7 @@ namespace PacketPeep.Widgets
             }
 
             Inspector        = new(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x), true);
-            ReadLogInspector = new AeroReadLogInspector(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x));
+            //ReadLogInspector = new AeroReadLogInspector(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x));
 
             var highlights = new List<HexView.HighlightSection>(Inspector.Entries.Count);
 
@@ -257,7 +257,7 @@ namespace PacketPeep.Widgets
             }
             else {
                 Inspector.Draw();
-                ReadLogInspector.Draw();
+                //ReadLogInspector.Draw();
 
                 // Hover highlights for when you hover over a variable, show it in the hex view above
                 if (lastHoveredItemIdx != Inspector.HoveredIdx && Inspector.HoveredIdx != -1) {
