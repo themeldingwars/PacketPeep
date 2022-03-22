@@ -135,9 +135,17 @@ namespace PacketPeep.Systems
 
                         if (msgObj != null) {
                             try {
-                                var data = msg.Data[msgHeader.Length..];
-                                var amountRead = msgObj.Unpack(data);
-                                PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}");
+                                var data   = msg.Data[msgHeader.Length..];
+                                var isView = msgObj is IAeroViewInterface;
+
+                                if (msgObj is IAeroViewInterface aeroView && msgHeader.MessageId is 1) {
+                                    var amountRead = aeroView.UnpackChanges(data);
+                                }
+                                else {
+                                    var amountRead = msgObj.Unpack(data);
+                                }
+                                
+                                PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}, IsView: {isView}");
                             }
                             catch (Exception e) {
                                 PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, $"Error unpacking message for {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, Message Idx: {msg.Id} {Utils.GetMessageName(msg)} to {msgObj.GetType().Name}\n{e}");

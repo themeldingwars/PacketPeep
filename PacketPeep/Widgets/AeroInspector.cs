@@ -26,11 +26,17 @@ namespace PacketPeep.Widgets
         private const int LINE_HEIGHT     = 30;
         private const int INDENT_DIST     = 5;
 
-        public AeroInspector(IAero aeroObj, Action<string> logError)
+        public AeroInspector(IAero aeroObj, Action<string> logError, bool buildFromReadLogs = false)
         {
             AeroObj  = aeroObj;
             LogError = logError;
-            BuildData();
+
+            if (buildFromReadLogs) {
+                BuildDataFromReadDiag();
+            }
+            else {
+                BuildData();
+            }
         }
 
         public void BuildData()
@@ -41,6 +47,107 @@ namespace PacketPeep.Widgets
             OrderIdx = 0;
 
             AddEntriesForType(type, AeroObj);
+        }
+
+        public void BuildDataFromReadDiag()
+        {
+            if (AeroObj == null) return;
+
+            var readLogs = AeroObj.GetDiagReadLogs();
+
+            var                rootEntries     = new Dictionary<string, AeroInspectorEntry>();
+            AeroInspectorEntry lastParentEntry = null;
+            foreach (var log in readLogs.Where(x => !x.Name.StartsWith("SF Id: "))) {
+                var parentName = (log.ParentName ?? "").Replace("[", ".").Replace("]", "");
+                
+                if (log.EntryType == AeroReadLog.LogEntryType.Field) {
+                    var entry = CreateEntryFromReadLog(log.Name, log.Offset, log.Length, log.TypeStr, AeroObj, log.Type);
+
+                    if (rootEntries.TryGetValue(parentName, out var rootEntry)) {
+                        entry.Parent = rootEntry;
+                        entry.Obj    = rootEntry?.Ref?.GetValue(rootEntry.Obj);
+
+                        var field = (entry.Obj ?? AeroObj).GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                        entry.Ref = field;
+
+                        if (rootEntry.IsArray) {
+                            entry.ColorIdx = rootEntry.ColorIdx;
+                        }
+                        
+                        rootEntry.Size += entry.Size;
+                        rootEntry.SubEntrys.Add(entry);
+                    }
+                    else {
+                        var field = AeroObj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                        entry.Ref = field;
+                        entry.Obj = AeroObj;
+                        Entries.Add(entry);
+                    }
+                }
+                else if (log.EntryType == AeroReadLog.LogEntryType.Array) {
+                    var entry = CreateEntryFromReadLog(log.Name, log.Offset, log.Length, log.TypeStr, AeroObj, log.Type);
+                    entry.IsArray = true;
+                    
+                    if (rootEntries.TryGetValue(parentName, out var rootEntry)) {
+                        entry.Parent  = rootEntry;
+                        
+                        var field = rootEntry.Obj.GetType().GetField(rootEntry.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(rootEntry.Obj).GetType().GetField(log.Name);
+                        entry.Ref = field;
+                        entry.Obj = rootEntry.Ref?.GetValue(rootEntry.Obj);
+                        
+                        rootEntry.SubEntrys.Add(entry);
+                    }
+                    else {
+                        var field = AeroObj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                        entry.Ref = field;
+                        entry.Obj = AeroObj;
+                        
+                        Entries.Add(entry);
+                    }
+
+                    rootEntries.Add($"{log.ParentName}.{log.Name}".Trim('.'), entry);
+                }
+                else if (log.EntryType == AeroReadLog.LogEntryType.AeroBlock) {
+                    var entry      = CreateEntryFromReadLog(log.Name, log.Offset, log.Length, log.TypeStr, AeroObj, log.Type);
+                    if (rootEntries.TryGetValue(parentName, out var rootEntry)) {
+                        entry.Parent = rootEntry;
+                        
+                        //var field = rootEntry.Obj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                        var field = rootEntry.Obj.GetType().GetField(rootEntry.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(rootEntry.Obj).GetType().GetField(log.Name);
+                        entry.Ref = field;
+                        entry.Obj = rootEntry.Ref?.GetValue(rootEntry.Obj);
+                        
+                        rootEntry.SubEntrys.Add(entry);
+                    }
+                    else {
+                        var field = AeroObj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                        entry.Ref = field;
+                        entry.Obj = AeroObj;
+                        
+                        Entries.Add(entry);
+                    }
+
+                    rootEntries.Add($"{log.ParentName}.{log.Name}".Trim('.'), entry);
+                }
+            }
+        }
+
+        private AeroInspectorEntry CreateEntryFromReadLog(string name, int offset, int length, string typeStr, object obj, Type type)
+        {
+            var entry = new AeroInspectorEntry
+            {
+                Name     = name,
+                EType    = GetEntryTypeFromType(type),
+                IsArray  = false,
+                Ref      = null,
+                OrderIdx = OrderIdx++,
+                Size     = length,
+                Offset   = offset,
+                ColorIdx = OrderIdx % Config.Inst.MessageEntryColors.Count,
+                Obj      = obj,
+            };
+
+            return entry;
         }
 
         private int GetSizeFromTypeName(string typeName)
@@ -63,14 +170,13 @@ namespace PacketPeep.Widgets
         private void AddEntriesForType(Type type, object obj, AeroInspectorEntry parentEntry = null)
         {
             try {
-
                 var isView = type.CustomAttributes.Count(x => x.ToString() == "[Aero.Gen.Attributes.AeroAttribute((Boolean)True)]") == 1;
                 foreach (var f in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).Where(f => isView ? (f.IsPublic || f.IsPrivate) : f.IsPublic)) {
                     if (ChecKAeroIf(f, parentEntry?.SubEntrys ?? Entries)) {
                         if (new[] {"DirtyBitfield", "NullablesBitfield"}.Any(x => f.Name.StartsWith(x))) { // Skip reserved fields
                             continue;
                         }
-                        
+
                         var entry = new AeroInspectorEntry
                         {
                             Name     = f.Name,
@@ -236,9 +342,11 @@ namespace PacketPeep.Widgets
             if (isHovered) {
                 HoveredIdx   = entry.OrderIdx;
                 HoveredEntry = entry;
-
+                
                 ImGui.BeginTooltip();
-                ImGui.Text($"Type: {entry.Ref.FieldType}");
+                ImGui.Text($"Type: {(entry?.Ref?.FieldType)}");
+                ImGui.Text($"Ref: {(entry?.Ref)}");
+                ImGui.Text($"Obj: {(entry?.Obj)}");
                 ImGui.Text($"Offset: {entry.Offset}");
                 ImGui.Text($"Size: {entry.Size}");
                 ImGui.EndTooltip();
@@ -270,12 +378,19 @@ namespace PacketPeep.Widgets
                 }
             }
             else {
-                var draw = GetDisplayFunc(entry);
+                try {
+                    var draw = GetDisplayFunc(entry);
 
-                ImGui.SetNextItemWidth(-1);
-                var hasChanged = draw(entry);
-                ImGui.PopID();
-                return hasChanged;
+                    ImGui.SetNextItemWidth(-1);
+                    var hasChanged = draw(entry);
+                    ImGui.PopID();
+                    return hasChanged;
+                }
+                catch (Exception e) {
+                    ImGui.Text($"Name: {entry.Obj}");
+                    ImGui.PopID();
+                    return false;
+                }
             }
 
             ImGui.PopID();

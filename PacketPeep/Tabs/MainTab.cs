@@ -237,7 +237,7 @@ namespace PacketPeep.Widgets
                 foreach (var file in files) {
                     PacketPeepTool.PcktDb.LoadCapture(file);
                 }
-            }, Config.Inst.LastCaptureDir, "*.pcap");
+            }, Config.Inst.LastCaptureDir, "*.pcap|*.faucap");
 
             ShowOpenCaptureDialog = false;
         }

@@ -34,11 +34,12 @@ namespace PacketPeep.Widgets
         private string idStr;
         private float  dividerHeight = 0;
 
-        private HexView       hexView;
-        private AeroInspector Inspector;
-        private MsgTester     msgTester           = null;
-        private string        JsonView           = null;
-        private int           lastHoveredItemIdx = -1;
+        private HexView              hexView;
+        private AeroInspector        Inspector;
+        private AeroReadLogInspector ReadLogInspector;
+        private MsgTester            msgTester          = null;
+        private string               JsonView           = null;
+        private int                  lastHoveredItemIdx = -1;
 
         public MessageInspector(string sessionName, int messageIdx, Message msg, IAero msgObj)
         {
@@ -71,7 +72,8 @@ namespace PacketPeep.Widgets
                 entityIdStr = $"{entityId}";
             }
 
-            Inspector = new(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x));
+            Inspector        = new(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x), true);
+            ReadLogInspector = new AeroReadLogInspector(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x));
 
             var highlights = new List<HexView.HighlightSection>(Inspector.Entries.Count);
 
@@ -255,6 +257,7 @@ namespace PacketPeep.Widgets
             }
             else {
                 Inspector.Draw();
+                ReadLogInspector.Draw();
 
                 // Hover highlights for when you hover over a variable, show it in the hex view above
                 if (lastHoveredItemIdx != Inspector.HoveredIdx && Inspector.HoveredIdx != -1) {
