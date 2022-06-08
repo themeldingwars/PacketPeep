@@ -31,11 +31,16 @@ namespace PacketPeep.Widgets
             AeroObj  = aeroObj;
             LogError = logError;
 
-            if (buildFromReadLogs) {
-                BuildDataFromReadDiag();
+            try {
+                if (buildFromReadLogs) {
+                    BuildDataFromReadDiag();
+                }
+                else {
+                    BuildData();
+                }
             }
-            else {
-                BuildData();
+            catch (Exception e) {
+                Console.WriteLine(e);
             }
         }
 
@@ -65,7 +70,7 @@ namespace PacketPeep.Widgets
 
                     if (rootEntries.TryGetValue(parentName, out var rootEntry)) {
                         entry.Parent = rootEntry;
-                        entry.Obj    = rootEntry?.Ref?.GetValue(rootEntry.Obj);
+                        entry.Obj    = rootEntry.GetValue<object>();
 
                         var field = (entry.Obj ?? AeroObj).GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
                         entry.Ref = field;
@@ -91,9 +96,9 @@ namespace PacketPeep.Widgets
                     if (rootEntries.TryGetValue(parentName, out var rootEntry)) {
                         entry.Parent  = rootEntry;
                         
-                        var field = rootEntry.Obj.GetType().GetField(rootEntry.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(rootEntry.Obj).GetType().GetField(log.Name);
+                        var field = rootEntry.GetValue<object>().GetType().GetField(rootEntry.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(rootEntry.GetValue<object>()).GetType().GetField(log.Name);
                         entry.Ref = field;
-                        entry.Obj = rootEntry.Ref?.GetValue(rootEntry.Obj);
+                        entry.Obj = rootEntry.Ref?.GetValue(rootEntry.GetValue<object>());
                         
                         rootEntry.SubEntrys.Add(entry);
                     }
@@ -113,9 +118,9 @@ namespace PacketPeep.Widgets
                         entry.Parent = rootEntry;
                         
                         //var field = rootEntry.Obj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                        var field = rootEntry.Obj.GetType().GetField(rootEntry.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(rootEntry.Obj).GetType().GetField(log.Name);
+                        var field = rootEntry.GetValue<object>().GetType().GetField(rootEntry.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(rootEntry.GetValue<object>()).GetType().GetField(log.Name);
                         entry.Ref = field;
-                        entry.Obj = rootEntry.Ref?.GetValue(rootEntry.Obj);
+                        entry.Obj = rootEntry.Ref?.GetValue(rootEntry.GetValue<object>());
                         
                         rootEntry.SubEntrys.Add(entry);
                     }
