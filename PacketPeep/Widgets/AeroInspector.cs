@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -58,82 +59,36 @@ namespace PacketPeep.Widgets
         {
             if (AeroObj == null) return;
 
-            var readLogs = AeroObj.GetDiagReadLogs();
+            List<AeroReadLog>                      readLogs        = AeroObj.GetDiagReadLogs().Where(x => !x.Name.StartsWith("SF Id: ")).ToList();
+            Dictionary<string, AeroInspectorEntry> parentEntries   = new();
+            AeroInspectorEntry                     lastParentEntry = null;
+            string EscapeName(string name) => name.Replace("[", ".").Replace("]", "");
 
-            var                rootEntries     = new Dictionary<string, AeroInspectorEntry>();
-            AeroInspectorEntry lastParentEntry = null;
-            foreach (var log in readLogs.Where(x => !x.Name.StartsWith("SF Id: "))) {
-                var parentName = (log.ParentName ?? "").Replace("[", ".").Replace("]", "");
-                
-                if (log.EntryType == AeroReadLog.LogEntryType.Field) {
-                    var entry = CreateEntryFromReadLog(log.Name, log.Offset, log.Length, log.TypeStr, AeroObj, log.Type);
+            foreach (var log in readLogs) {
+                string             parentName = EscapeName(log.ParentName ?? "");
+                AeroInspectorEntry entry      = CreateEntryFromReadLog(log.Name, log.Offset, log.Length, log.TypeStr, null, log.Type);
+                string             refName    = EscapeName($"{log.ParentName}.{log.Name}".Trim('.'));
+                entry.IsArray = log.EntryType == AeroReadLog.LogEntryType.Array;
 
-                    if (rootEntries.TryGetValue(parentName, out var rootEntry)) {
-                        entry.Parent = rootEntry;
-                        entry.Obj    = rootEntry.GetValue<object>();
+                if (parentEntries.TryGetValue(parentName, out var parentEntry)) {
+                    entry.Parent   = parentEntry;
+                    entry.ColorIdx = entry.Parent?.IsArray ?? false ? entry.Parent.ColorIdx : entry.ColorIdx;
 
-                        var field = (entry.Obj ?? AeroObj).GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                        entry.Ref = field;
+                    entry.Obj = entry.Parent.GetValue<object>();
+                    entry.Ref = entry.Obj.GetType().GetField(log.Name);
 
-                        if (rootEntry.IsArray) {
-                            entry.ColorIdx = rootEntry.ColorIdx;
-                        }
-                        
-                        rootEntry.Size += entry.Size;
-                        rootEntry.SubEntrys.Add(entry);
-                    }
-                    else {
-                        var field = AeroObj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                        entry.Ref = field;
-                        entry.Obj = AeroObj;
-                        Entries.Add(entry);
-                    }
+                    //Debug.WriteLine($"{refName} ({log.EntryType}): Obj: {entry.Obj != null}, IsArray: {entry.IsArray}");
+                    parentEntry.SubEntrys.Add(entry);
                 }
-                else if (log.EntryType == AeroReadLog.LogEntryType.Array) {
-                    var entry = CreateEntryFromReadLog(log.Name, log.Offset, log.Length, log.TypeStr, AeroObj, log.Type);
-                    entry.IsArray = true;
-                    
-                    if (rootEntries.TryGetValue(parentName, out var rootEntry)) {
-                        entry.Parent  = rootEntry;
-                        
-                        var field = rootEntry.GetValue<object>().GetType().GetField(rootEntry.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(rootEntry.GetValue<object>()).GetType().GetField(log.Name);
-                        entry.Ref = field;
-                        entry.Obj = rootEntry.Ref?.GetValue(rootEntry.GetValue<object>());
-                        
-                        rootEntry.SubEntrys.Add(entry);
-                    }
-                    else {
-                        var field = AeroObj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                        entry.Ref = field;
-                        entry.Obj = AeroObj;
-                        
-                        Entries.Add(entry);
-                    }
+                else {
+                    entry.Obj = AeroObj;
+                    entry.Ref = AeroObj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
-                    rootEntries.Add($"{log.ParentName}.{log.Name}".Trim('.'), entry);
+                    Entries.Add(entry);
+                    //Debug.WriteLine($"Added root level entry: {log.Name}, ref: {entry.Ref != null}, IsArray: {entry.IsArray}");
                 }
-                else if (log.EntryType == AeroReadLog.LogEntryType.AeroBlock) {
-                    var entry      = CreateEntryFromReadLog(log.Name, log.Offset, log.Length, log.TypeStr, AeroObj, log.Type);
-                    if (rootEntries.TryGetValue(parentName, out var rootEntry)) {
-                        entry.Parent = rootEntry;
-                        
-                        //var field = rootEntry.Obj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                        var field = rootEntry.GetValue<object>().GetType().GetField(rootEntry.Name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(rootEntry.GetValue<object>()).GetType().GetField(log.Name);
-                        entry.Ref = field;
-                        entry.Obj = rootEntry.Ref?.GetValue(rootEntry.GetValue<object>());
-                        
-                        rootEntry.SubEntrys.Add(entry);
-                    }
-                    else {
-                        var field = AeroObj.GetType().GetField(log.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                        entry.Ref = field;
-                        entry.Obj = AeroObj;
-                        
-                        Entries.Add(entry);
-                    }
 
-                    rootEntries.Add($"{log.ParentName}.{log.Name}".Trim('.'), entry);
-                }
+                parentEntries.Add(refName, entry);
             }
         }
 
@@ -303,6 +258,8 @@ namespace PacketPeep.Widgets
 
         public void Draw()
         {
+            //return;
+
             FontManager.PushFont("Regular_Small");
             if (ImGui.BeginTable("Inspector Table", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
                 ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.NoSort, 0.5f);
@@ -318,6 +275,29 @@ namespace PacketPeep.Widgets
 
                 ImGui.EndTable();
             }
+
+            /*if (ImGui.BeginTable("Inspector Table", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable)) {
+                ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.NoSort, 0.4f);
+                ImGui.TableSetupColumn("Offset", ImGuiTableColumnFlags.None, 0.2f);
+                ImGui.TableSetupColumn("Length", ImGuiTableColumnFlags.None, 0.2f);
+                ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.None, 0.2f);
+                ImGui.TableHeadersRow();
+                
+                foreach (var log in AeroObj.GetDiagReadLogs()) {
+                    ImGui.TableNextRow(ImGuiTableRowFlags.None, LINE_HEIGHT);
+                    
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{log.ParentName ?? ""}.{log.Name}");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{log.Offset}");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{log.Length}");
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{log.TypeStr}");
+                }
+
+                ImGui.EndTable();
+            }*/
 
             FontManager.PopFont();
         }
@@ -347,7 +327,7 @@ namespace PacketPeep.Widgets
             if (isHovered) {
                 HoveredIdx   = entry.OrderIdx;
                 HoveredEntry = entry;
-                
+
                 ImGui.BeginTooltip();
                 ImGui.Text($"Type: {(entry?.Ref?.FieldType)}");
                 ImGui.Text($"Ref: {(entry?.Ref)}");
@@ -383,18 +363,25 @@ namespace PacketPeep.Widgets
                 }
             }
             else {
-                try {
-                    var draw = GetDisplayFunc(entry);
-
-                    ImGui.SetNextItemWidth(-1);
-                    var hasChanged = draw(entry);
+                if (entry.ForceTextView) {
+                    ImGui.Text($"Name: ");
                     ImGui.PopID();
-                    return hasChanged;
                 }
-                catch (Exception e) {
-                    ImGui.Text($"Name: {entry.Obj}");
-                    ImGui.PopID();
-                    return false;
+                else {
+                    try {
+                        var draw = GetDisplayFunc(entry);
+
+                        ImGui.SetNextItemWidth(-1);
+                        var hasChanged = draw(entry);
+                        ImGui.PopID();
+                        return hasChanged;
+                    }
+                    catch (Exception e) {
+                        ImGui.Text($"Name: {entry.Obj}");
+                        ImGui.PopID();
+                        entry.ForceTextView = true;
+                        return false;
+                    }
                 }
             }
 
@@ -563,14 +550,17 @@ namespace PacketPeep.Widgets
         public int       OrderIdx;
         public object    Obj;
 
+        public bool ForceTextView = false;
+
         public AeroInspectorEntry       Parent;
         public List<AeroInspectorEntry> SubEntrys = new();
 
-        public T GetValue<T>()
+        public T GetValue<T>(int arrIdx = -1)
         {
             if (Parent is {IsArray: true}) {
                 var arr = (Array) Obj;
-                var idx = (OrderIdx - Parent.OrderIdx) - 1;
+                //var idx = arrIdx != -1 ? arrIdx : (OrderIdx - Parent.OrderIdx) - 1;
+                var idx = int.Parse(Name);
                 return (T) arr.GetValue(idx);
             }
 
