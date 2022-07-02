@@ -22,6 +22,7 @@ namespace PacketPeep.Widgets
         private Dictionary<string, ControllerData> controllerList        = new();
         private MsgFilterData                      pendingMsgFilterData  = MsgFilterData.Create();
         private string                             pendingControllerName = "";
+        private string                             pendingMessageName    = "";
         private PacketDb                           pcktDb                = null;
 
         public PacketDbSession GetActiveSession() => pcktDb.Sessions[ActiveFilter.SessionName];
@@ -58,7 +59,7 @@ namespace PacketPeep.Widgets
             if (!SelectedIdxs.TryGetValue(ActiveFilter.SessionName, out selectedIdsFiltered)) selectedIdsFiltered = new List<int>();
 
             DrawFilters();
-            
+
             DrawPacketList();
 
             ImGui.End();
@@ -130,8 +131,9 @@ namespace PacketPeep.Widgets
                 pcktDb.ApplyFilter(ActiveFilter);
             }
         }
-        
-        private int  messageFinderMsgIdx      = 0;
+
+        private int messageFinderMsgIdx = 0;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DrawMessageFinder()
         {
@@ -142,8 +144,9 @@ namespace PacketPeep.Widgets
                 ImGui.OpenPopup(FIND_POPUP_NAME);
                 messageFinderMsgIdx = 0;
             }
+
             FontManager.PopFont();
-            
+
             if (ImGui.BeginPopup(FIND_POPUP_NAME)) {
                 if (!ImGui.IsAnyItemFocused() && !ImGui.IsAnyItemActive() && !ImGui.IsMouseClicked(0)) ImGui.SetKeyboardFocusHere();
                 ImGui.InputInt("###Message Idx", ref messageFinderMsgIdx, 0, 0);
@@ -151,7 +154,7 @@ namespace PacketPeep.Widgets
                 ImGui.SameLine();
                 if (ImGui.Button("Go") || ImGui.IsKeyPressedMap(ImGuiKey.Tab)) {
                     ImGui.CloseCurrentPopup();
-                    
+
                     // Find the offset for the message
                     var offsetIdx = 0;
                     if (pcktDb.FilteredIndices.Contains(messageFinderMsgIdx)) {
@@ -167,6 +170,7 @@ namespace PacketPeep.Widgets
                         scrollTo = offsetIdx * 17;
                     }
                 }
+
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Scroll to the message in the list. [Tab]");
 
                 ImGui.SameLine();
@@ -175,6 +179,7 @@ namespace PacketPeep.Widgets
                     ToggleMessageSelect(messageFinderMsgIdx);
                     OnMessageSelected?.Invoke(messageFinderMsgIdx, false);
                 }
+
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open the message in an inspector. [Enter]");
 
                 ImGui.EndPopup();
@@ -298,33 +303,52 @@ namespace PacketPeep.Widgets
                     ImGui.EndCombo();
                 }
 
+                var midDisplayName = pendingMessageName != "" ? pendingMessageName : "MessageId";
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(300);
-                if (ImGui.BeginCombo("###MessageId", "MessageId", ImGuiComboFlags.HeightLarge)) {
+                if (ImGui.BeginCombo("###MessageId", midDisplayName, ImGuiComboFlags.HeightLarge)) {
                     if (pcktDb.ControllerList.TryGetValue(pendingMsgFilterData.ViewId, out var cData)) {
                         // Presets
                         SimpleDropDownSelectable("All", -1, () =>
                         {
                             pendingMsgFilterData.MsgId = -1;
                             pendingMsgFilterData.CmdId = -1;
+                            pendingMessageName         = "All";
                         });
 
                         if (pendingMsgFilterData.ViewId >= 0) {
-                            SimpleDropDownSelectable("All Messages", -2, () => pendingMsgFilterData.MsgId = -1);
-                            SimpleDropDownSelectable("All Commands", -3, () => pendingMsgFilterData.CmdId = -1);
+                            SimpleDropDownSelectable("All Messages", -2, () =>
+                            {
+                                pendingMsgFilterData.MsgId = -1;
+                                pendingMessageName         = "All Messages";
+                            });
+                            
+                            SimpleDropDownSelectable("All Commands", -3, () =>
+                            {
+                                pendingMsgFilterData.CmdId = -1;
+                                pendingMessageName         = "All Commands";
+                            });
                         }
 
                         // Messages
                         if (cData.Messages != null && ImGui.CollapsingHeader("Messages", ImGuiTreeNodeFlags.DefaultOpen)) {
                             foreach (var (msgId, msgName) in cData.Messages) {
-                                SimpleDropDownSelectable(msgName, msgId, () => pendingMsgFilterData.MsgId = msgId);
+                                SimpleDropDownSelectable(msgName, msgId, () =>
+                                {
+                                    pendingMsgFilterData.MsgId = msgId;
+                                    pendingMessageName         = $"MSG: {msgName}";
+                                });
                             }
                         }
 
                         // Commands
                         if (cData.Commands != null && ImGui.CollapsingHeader("Commands", ImGuiTreeNodeFlags.DefaultOpen)) {
                             foreach (var (cmdId, cmdName) in cData.Commands) {
-                                SimpleDropDownSelectable(cmdName, cmdId, () => pendingMsgFilterData.CmdId = cmdId);
+                                SimpleDropDownSelectable(cmdName, cmdId, () =>
+                                {
+                                    pendingMsgFilterData.CmdId = cmdId;
+                                    pendingMessageName         = $"CMD: {cmdName}";
+                                });
                             }
                         }
                     }
@@ -459,6 +483,7 @@ namespace PacketPeep.Widgets
                         ImGui.SetScrollY(scrollTo);
                         scrollTo = -1f;
                     }
+
                     ImGui.EndTable();
                 }
 
@@ -534,7 +559,7 @@ namespace PacketPeep.Widgets
                 ImGui.TableNextColumn();
                 if (msg.Server == Server.Game)
                     if (gameMsg is SubMessage subMsg) {
-                        ImGui.Text($"{(byte)(subMsg.EntityId & 0x00000000000000FF)}::{gameMsg.Data[0]}");
+                        ImGui.Text($"{(byte) (subMsg.EntityId & 0x00000000000000FF)}::{gameMsg.Data[0]}");
                     }
                     else {
                         ImGui.Text(isGss ? $"{gameMsg.Data[0]}::{gameMsg.Data[8]}" : $"{gameMsg.Data[0]}");
@@ -638,7 +663,7 @@ namespace PacketPeep.Widgets
         {
             try {
                 if (msg.Server == Server.Game) {
-                    var id = msg is SubMessage subMsg ? (byte)(subMsg.EntityId & 0x00000000000000FF) : gameMsg.Data[0];
+                    var id = msg is SubMessage subMsg ? (byte) (subMsg.EntityId & 0x00000000000000FF) : gameMsg.Data[0];
                     switch (gameMsg.Channel) {
                         case Channel.Control:
                             ImGui.Text(PacketPeepTool.PcktDb.GetMessageName(PacketDb.CONTROL_REF_ID, id));
@@ -651,9 +676,9 @@ namespace PacketPeep.Widgets
                         case Channel.ReliableGss:
                         case Channel.UnreliableGss:
                         {
-                            var msgId        = msg is SubMessage subMsg2 ? subMsg2.Data[0] : gameMsg.Data[8];
-                            var viewName     = PacketPeepTool.PcktDb.GetViewName(id);
-                            var msgName      = gameMsg.FromServer || id is 0 or 251 ? PacketPeepTool.PcktDb.GetMessageName(id, msgId) : PacketPeepTool.PcktDb.GetCommandName(id, msgId);
+                            var msgId    = msg is SubMessage subMsg2 ? subMsg2.Data[0] : gameMsg.Data[8];
+                            var viewName = PacketPeepTool.PcktDb.GetViewName(id);
+                            var msgName  = gameMsg.FromServer || id is 0 or 251 ? PacketPeepTool.PcktDb.GetMessageName(id, msgId) : PacketPeepTool.PcktDb.GetCommandName(id, msgId);
 
                             var isSubMessage = msg is SubMessage;
                             ImGui.Text($"{(isSubMessage ? "\t|-- " : "")}{viewName}::{msgName}");
