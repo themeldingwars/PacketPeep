@@ -138,6 +138,11 @@ namespace PacketPeep.Systems
                                 var data   = msg.Data[msgHeader.Length..];
                                 var isView = msgObj is IAeroViewInterface;
 
+                                // If its a controller skip the player id
+                                if (msgObj.GetType().GetCustomAttribute<AeroAttribute>().AeroType == AeroGenTypes.Controller && msgHeader.MessageId is 4) {
+                                    data = data[8..];
+                                }
+                                
                                 if (msgObj is IAeroViewInterface aeroView && msgHeader.MessageId is 1) {
                                     var amountRead = aeroView.UnpackChanges(data);
                                 }

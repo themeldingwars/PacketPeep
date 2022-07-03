@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Aero.Gen;
+using Aero.Gen.Attributes;
 using FauCap;
 using ImGuiNET;
 using ImTool;
@@ -103,7 +106,17 @@ namespace PacketPeep.Widgets
                 AddHighlightEntry(entry);
             }
 
-            hexView.SetData(Msg.Data[headerData.Length..].ToArray(), highlights.ToArray());
+            // If its a controller skip the player id
+            var data = Msg.Data[headerData.Length..];
+            if (headerData.MessageId == 4 && MsgObj is IAeroViewInterface && MsgObj.GetType().GetCustomAttribute<AeroAttribute>()?.AeroType == AeroGenTypes.Controller) {
+                var eId           = new EntityId();
+                eId.Backing = MemoryMarshal.Cast<byte, ulong>(data[..8])[0];
+                data = data[8..];
+
+                entityIdStr += $" - {eId}";
+            }
+            
+            hexView.SetData(data.ToArray(), highlights.ToArray());
 
             if (JsonView != null) {
                 JsonView = JsonConvert.SerializeObject(MsgObj, Formatting.Indented);
@@ -163,7 +176,7 @@ namespace PacketPeep.Widgets
                 ImGui.TableSetupColumn("Chan", ImGuiTableColumnFlags.WidthFixed, 100f);
                 ImGui.TableSetupColumn("Id", ImGuiTableColumnFlags.WidthFixed, 50f);
                 ImGui.TableSetupColumn("Size", ImGuiTableColumnFlags.WidthFixed, 100f);
-                ImGui.TableSetupColumn("EntityId", ImGuiTableColumnFlags.WidthFixed, 200f);
+                ImGui.TableSetupColumn("EntityId", ImGuiTableColumnFlags.WidthFixed, 400f);
                 ImGui.TableHeadersRow();
 
                 ImGui.TableNextColumn();
