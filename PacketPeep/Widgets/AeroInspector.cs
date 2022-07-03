@@ -90,6 +90,9 @@ namespace PacketPeep.Widgets
 
                 parentEntries.Add(refName, entry);
             }
+            
+            // Filter out empty nullable feilds
+            Entries = Entries.Where(entry => entry.EType == AeroInspectorEntry.EntryType.AeroBlock && entry.SubEntrys.Count != 0 || entry.EType != AeroInspectorEntry.EntryType.AeroBlock).ToList();
         }
 
         private AeroInspectorEntry CreateEntryFromReadLog(string name, int offset, int length, string typeStr, object obj, Type type)
@@ -491,7 +494,7 @@ namespace PacketPeep.Widgets
 
             return hasChanged;
         }
-
+        
         private bool DrawUnknown(AeroInspectorEntry entry)
         {
             ImGui.Text($"{entry.Ref.GetValue(entry.Obj)}");
