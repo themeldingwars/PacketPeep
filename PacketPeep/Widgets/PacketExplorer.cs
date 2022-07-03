@@ -362,6 +362,7 @@ namespace PacketPeep.Widgets
                     hasFiltersChanged = true;
 
                     pendingControllerName = "";
+                    pendingMessageName    = "";
                     pendingMsgFilterData  = MsgFilterData.Create();
                 }
 

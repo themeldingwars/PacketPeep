@@ -113,7 +113,7 @@ namespace PacketPeep.Widgets
                 eId.Backing = MemoryMarshal.Cast<byte, ulong>(data[..8])[0];
                 data = data[8..];
 
-                entityIdStr += $" - {eId}";
+                entityIdStr += $" - {eId.Backing}";
             }
             
             hexView.SetData(data.ToArray(), highlights.ToArray());
