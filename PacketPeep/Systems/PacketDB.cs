@@ -266,10 +266,10 @@ namespace PacketPeep.Systems
                 if (!Sessions.ContainsKey(sessionName)) {
                     var packetSession = new PacketDbSession(session, sessionName);
                     Sessions.Add(sessionName, packetSession);
-                    var task = Task.Factory.StartNew(() =>
-                    {
-                        PacketParser.ParseMessagesForSession(packetSession);
-                    });
+                    if (Config.Inst.ParsePacketsOnLoad) {
+                        var task = Task.Factory.StartNew(() => { PacketParser.ParseMessagesForSession(packetSession); });
+                    }
+
                     PacketPeepTool.Log.AddLogInfo(LogCategories.PacketDB, $"Added session {sessionName}, {session.Datagrams.Count:N0} Datagrams, {session.Packets.Count:N0} Packets, {session.Messages.Count:N0} Messages");
                 }
             }
@@ -282,7 +282,9 @@ namespace PacketPeep.Systems
         {
             foreach (var session in Sessions.Values) {
                 session.ParsedMessages.Clear();
-                PacketParser.ParseMessagesForSession(session);
+                if (Config.Inst.ParsePacketsOnLoad) {
+                    var task = Task.Factory.StartNew(() => { PacketParser.ParseMessagesForSession(session); });
+                }
             }
         }
 

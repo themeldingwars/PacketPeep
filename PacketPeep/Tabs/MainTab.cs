@@ -168,6 +168,8 @@ namespace PacketPeep.Widgets
             if (ImGui.Button("...")) {
                 ShowAeroDllBrowser = true;
             }
+
+            ImGui.Checkbox("Parse Packets On Load", ref Config.Inst.ParsePacketsOnLoad);
         }
 
         private static void Setting_PacketListDisplay()

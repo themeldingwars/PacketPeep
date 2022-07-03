@@ -16,6 +16,7 @@ namespace PacketPeep
         public string LastCaptureDir         = null;
         public string GameBuildVersion       = "production 1962.0";
         public string AeroMessageDllLocation = null;
+        public bool   ParsePacketsOnLoad     = false;
 
         public PacketListDisplay PacketList = new();
 

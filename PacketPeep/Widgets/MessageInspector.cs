@@ -75,6 +75,10 @@ namespace PacketPeep.Widgets
                 entityIdStr = $"{entityId}";
             }
 
+            if (MsgObj == null) {
+                MsgObj = PacketParser.ParseMessage(Msg);
+            }
+
             Inspector        = new(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x), true);
             //ReadLogInspector = new AeroReadLogInspector(MsgObj, x => PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, x));
 
