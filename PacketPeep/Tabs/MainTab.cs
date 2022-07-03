@@ -237,9 +237,14 @@ namespace PacketPeep.Widgets
                 }
 
                 foreach (var file in files) {
-                    PacketPeepTool.PcktDb.LoadCapture(file);
+                    if (Path.GetExtension(file).ToUpperInvariant() == ".NSR") {
+                        PacketPeepTool.PcktDb.LoadNsr(file);
+                    }
+                    else {
+                        PacketPeepTool.PcktDb.LoadCapture(file);
+                    }
                 }
-            }, Config.Inst.LastCaptureDir, "*.pcap|*.faucap");
+            }, Config.Inst.LastCaptureDir, "*.pcap|*.faucap|*.nsr");
 
             ShowOpenCaptureDialog = false;
         }

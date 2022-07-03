@@ -8,7 +8,9 @@ using System.Net;
 using System.Threading.Tasks;
 using Aero.Gen;
 using FauCap;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Schema;
+using PacketPeep.FauFau.Formats;
 using Sift;
 
 namespace PacketPeep.Systems
@@ -85,7 +87,7 @@ namespace PacketPeep.Systems
                     var dstDir  = Path.GetDirectoryName(dstPath);
                     if (!Directory.Exists(dstDir))
                         Directory.CreateDirectory(dstDir);
-                    
+
                     File.WriteAllText(dstPath, text);
                 }
             }
@@ -164,6 +166,49 @@ namespace PacketPeep.Systems
             }
             catch (Exception e) {
                 PacketPeepTool.Log.AddLogError(LogCategories.PacketDB, $"Error loading capture {path}, error: {e.ToString()}");
+            }
+        }
+
+        public void LoadNsr(string path)
+        {
+            try {
+                PacketPeepTool.Log.AddLogInfo(LogCategories.PacketDB, $"Loading NSR: {path}");
+                var nsr      = new Nsr(path);
+                var metaDescJson = JsonConvert.SerializeObject(nsr.HeaderData.Description, Formatting.Indented);
+                var metaJson = JsonConvert.SerializeObject(nsr.HeaderData.Meta, Formatting.Indented);
+                PacketPeepTool.Log.AddLogInfo(LogCategories.PacketDB, $"NSR Desc: {metaDescJson}");
+                PacketPeepTool.Log.AddLogInfo(LogCategories.PacketDB, $"NSR Meta: {metaJson}");
+
+                var session = new GameSession
+                {
+                    StreamingProtocol = (ushort) nsr.HeaderData.Description.ProtocolVersion,
+                    Packets           = new List<Packet>(),
+                    Messages          = new List<Message>()
+                };
+
+                int id = 0;
+                foreach (var keyframe in nsr.KeyFrames) {
+                    foreach (var frame in keyframe.Frames) {
+                        try {
+                            var msg = new NsrGameMessage(id++);
+                            msg.MainData = new byte[frame.Data.Length - 4];
+                            Array.Copy(frame.Data, 0, msg.MainData, 0, 9);
+                            Array.Copy(frame.Data, 13, msg.MainData, 9, frame.Data.Length - 13);
+                        
+                            session.Messages.Add(msg);
+                        }
+                        catch (Exception e) {
+                            PacketPeepTool.Log.AddLogError(LogCategories.PacketDB, $"Error creating message, error: {e}\nLen: {frame.Length}, Unk1: {frame.Unk1}, Unk2: {frame.Unk2}, WeirdInt: {frame.WeirdInt}, ControllerId: {frame.ControllerId}, MsgId: {frame.MsgIdMaybe}");
+                            id--;
+                        }
+                        
+                    }
+                }
+
+                AddSessions(new List<GameSession> {session}, $"NSR {Path.GetFileNameWithoutExtension(path)}");
+            }
+            catch (Exception e) {
+                PacketPeepTool.Log.AddLogError(LogCategories.PacketDB, $"Error loading NSR {path}, error: {e}");
             }
         }
 

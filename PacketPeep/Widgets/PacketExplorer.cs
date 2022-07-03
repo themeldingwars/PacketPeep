@@ -473,7 +473,9 @@ namespace PacketPeep.Widgets
 
                         while (clipper.Step()) {
                             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-                                DrawPacketListItem(i);
+                                if (i < pcktDb.Sessions[ActiveFilter.SessionName].Session.Messages.Count) {
+                                    DrawPacketListItem(i);
+                                }
                             }
                         }
 
