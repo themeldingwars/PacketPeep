@@ -1,0 +1,6 @@
+is_global = true
+
+Aero_Enabled = true
+Aero_BoundsCheck = false
+Aero_DiagLogging = false
+Aero_LogReadsWrites = false
