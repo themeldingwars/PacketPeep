@@ -136,7 +136,7 @@ namespace PacketPeep.Systems
                         controllerData.Messages.Add(3, "Keyframe View");
                         controllerData.Messages.Add(4, "Keyframe Controller");
                         controllerData.Messages.Add(5, "Remove Controller");
-                        controllerData.Messages.Add(6, "Remove Controller");
+                        controllerData.Messages.Add(6, "Remove View");
                         var orderedMsgs2 = controllerData.Messages.OrderBy(x => x.Key).ToDictionary(x => x.Key, y => y.Value);
                         controllerData.Messages.Clear();
                         controllerData.Messages = orderedMsgs2;
