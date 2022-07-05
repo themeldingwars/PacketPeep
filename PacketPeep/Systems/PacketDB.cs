@@ -181,7 +181,7 @@ namespace PacketPeep.Systems
 
                 var session = new GameSession
                 {
-                    StreamingProtocol = (ushort) nsr.HeaderData.Description.ProtocolVersion,
+                    StreamingProtocol = (ushort) IPAddress.NetworkToHostOrder((short)nsr.HeaderData.Description.ProtocolVersion),
                     Packets           = new List<Packet>(),
                     Messages          = new List<Message>()
                 };
@@ -191,10 +191,15 @@ namespace PacketPeep.Systems
                     foreach (var frame in keyframe.Frames) {
                         try {
                             var msg = new NsrGameMessage(id++);
-                            msg.MainData = new byte[frame.Data.Length - 4];
-                            Array.Copy(frame.Data, 0, msg.MainData, 0, 9);
-                            Array.Copy(frame.Data, 13, msg.MainData, 9, frame.Data.Length - 13);
-                        
+                            if (frame.WeirdInt != -1) {
+                                msg.MainData = new byte[frame.Data.Length - 4];
+                                Array.Copy(frame.Data, 0, msg.MainData, 0, 9);
+                                Array.Copy(frame.Data, 13, msg.MainData, 9, frame.Data.Length - 13);   
+                            }
+                            else {
+                                msg.MainData = frame.Data;
+                            }
+
                             session.Messages.Add(msg);
                         }
                         catch (Exception e) {
