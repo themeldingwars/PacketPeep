@@ -13,10 +13,11 @@ namespace PacketPeep
     {
         public static Config Inst;
 
-        public string LastCaptureDir         = null;
-        public string GameBuildVersion       = "production 1962.0";
-        public string AeroMessageDllLocation = null;
-        public bool   ParsePacketsOnLoad     = false;
+        public string  LastCaptureDir         = null;
+        public string  GameBuildVersion       = "production 1962.0";
+        public string  AeroMessageDllLocation = null;
+        public bool    ParsePacketsOnLoad     = false;
+        public Windows WindowsSettings        = new();
 
         public PacketListDisplay PacketList = new();
 
@@ -138,6 +139,11 @@ namespace PacketPeep
 
                 return numColumns;
             }
+        }
+
+        public class Windows
+        {
+            public bool ShowMagicQuery = false;
         }
 
         public enum Colors

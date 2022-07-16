@@ -4,6 +4,7 @@
     {
         General,
         PacketDB,
-        PacketParser
+        PacketParser,
+        QueryEngine
     }
 }

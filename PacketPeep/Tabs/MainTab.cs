@@ -15,7 +15,8 @@ namespace PacketPeep.Widgets
         public static   bool           ShowAeroDllBrowser    = false;
         public          PacketPeepTool Tool;
 
-        public PacketExplorer PacketExp = new PacketExplorer(PacketPeepTool.PcktDb);
+        public PacketExplorer PacketExp = new(PacketPeepTool.PcktDb);
+        public MagicQuery     MagicQuery;
 
         public List<MessageInspector> MsgInspectors = new();
 
@@ -31,6 +32,8 @@ namespace PacketPeep.Widgets
                 else
                     OpenMessageInspector(idx);
             };
+            
+            MagicQuery = new(PacketExp);
         }
 
         protected override unsafe void SubmitContent()
@@ -55,6 +58,7 @@ namespace PacketPeep.Widgets
             DrawMessageInspectors();
 
             PacketParser.Draw();
+            MagicQuery?.Draw();
 
             if (ShowAeroDllBrowser) {
                 var dllDir = !string.IsNullOrEmpty(Config.Inst.AeroMessageDllLocation) ? Path.GetDirectoryName(Config.Inst.AeroMessageDllLocation) : "";
@@ -133,9 +137,21 @@ namespace PacketPeep.Widgets
 
             Setting_GameVersion();
             Setting_PacketParser();
+            Setting_Windows();
             Setting_PacketListDisplay();
             Setting_MessageInspector();
             Setting_Colors();
+        }
+
+        private void Setting_Windows()
+        {
+            if (ImGui.CollapsingHeader("Windows")) {
+                ImGui.Indent();
+                {
+                    ImGui.Checkbox("Magic Query", ref Config.Inst.WindowsSettings.ShowMagicQuery);
+                }
+                ImGui.Unindent();
+            }
         }
 
         private static void Setting_GameVersion()

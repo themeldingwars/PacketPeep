@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using Aero.Gen;
 using FauCap;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Schema;
 using PacketPeep.FauFau.Formats;
 using Sift;
 
@@ -366,9 +365,10 @@ namespace PacketPeep.Systems
 
     public class PacketDbSession
     {
-        public string      Name;
-        public GameSession Session;
-        public List<IAero> ParsedMessages = new();
+        public string                 Name;
+        public GameSession            Session;
+        public List<IAero>            ParsedMessages = new();
+        public List<ParsedMessageDoc> Docs;
 
         public PacketDbSession(GameSession session, string name)
         {
@@ -537,5 +537,19 @@ namespace PacketPeep.Systems
         public ControllerData()
         {
         }
+    }
+
+    public class ParsedMessageDoc
+    {
+        public int      MsgIdx;
+        public bool     FromServer;
+        public DateTime RecivedTime;
+        public Channel  Channel;
+        public int      ControllerId;
+        public int      MessageId;
+        public ulong    EntityId;
+        public int      Size;
+        public bool     HasAeroParsed;
+        public dynamic  Payload;
     }
 }

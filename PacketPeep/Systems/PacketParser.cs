@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -12,8 +11,9 @@ namespace PacketPeep.Systems
 {
     public static class PacketParser
     {
-        private static PluginLoader Loader;
+        public static  PluginLoader Loader;
         private static MethodInfo   GetAeroMessageHandlerMI;
+        public static  Assembly     AeroAssembly;
 
         public static Action OnDllReload;
 
@@ -66,7 +66,8 @@ namespace PacketPeep.Systems
 
         private static void PostDllLoad()
         {
-            GetAeroMessageHandlerMI = Loader.LoadDefaultAssembly().GetType("AeroRouting")?.GetMethod("GetNewMessageHandler");
+            AeroAssembly            = Loader.LoadDefaultAssembly();
+            GetAeroMessageHandlerMI = AeroAssembly.GetType("AeroRouting")?.GetMethod("GetNewMessageHandler");
 
             if (GetAeroMessageHandlerMI == null) {
                 PacketPeepTool.Log.AddLogError(LogCategories.PacketParser, "GetAeroMessageHandlerMI was null from loaded dll!");
@@ -117,7 +118,7 @@ namespace PacketPeep.Systems
 
             GC.Collect();
         }
-
+        
         public static IAero ParseMessage(Message msg)
         {
             var msgHeader = Utils.GetGssMessageHeader(msg);
@@ -159,7 +160,7 @@ namespace PacketPeep.Systems
                                 var amountRead = msgObj.Unpack(data);
                             }
 
-                            PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}, IsView: {isView}");
+                            //PacketPeepTool.Log.AddLogTrace(LogCategories.PacketParser, $"Parsed packet {msgObj.GetType().Name} {msgType} {msgHeader.ControllerId}::{msgHeader.MessageId}, {Utils.GetMessageName(msg)}, IsView: {isView}");
                         }
                         catch (Exception e) {
                             PacketPeepTool.Log.AddLogError(LogCategories.PacketParser,
