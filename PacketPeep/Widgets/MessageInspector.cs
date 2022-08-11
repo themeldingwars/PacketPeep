@@ -44,6 +44,9 @@ namespace PacketPeep.Widgets
         private string               JsonView           = null;
         private int                  lastHoveredItemIdx = -1;
 
+        private bool    showFullPacketHexView = false;
+        private HexView fullPackethexView;
+
         public MessageInspector(string sessionName, int messageIdx, Message msg, IAero msgObj)
         {
             SessionName = sessionName;
@@ -210,7 +213,7 @@ namespace PacketPeep.Widgets
             if (ImGui.BeginMenuBar()) {
                 ImGui.Text(Utils.GetMessageName(Msg));
 
-                ImGui.SameLine(ImGui.GetWindowWidth() - 180);
+                ImGui.SameLine(ImGui.GetWindowWidth() - 200);
                 if (ImGui.BeginMenu("Copy")) {
                     if (ImGui.MenuItem("Copy to C# hex string")) {
                         var dataCopyStr = string.Join(", ", hexView.Bytes.Select(x => $"0x{x:X}"));
@@ -253,6 +256,17 @@ namespace PacketPeep.Widgets
                         msgTester = msgTester != null ? null : new MsgTester(Msg, MsgObj);   
                     }
                 }
+                
+                if (ImGui.Button("")) {
+                    if (showFullPacketHexView == false) {
+                        showFullPacketHexView = true;
+                        fullPackethexView     = new();
+                        fullPackethexView.SetData(Msg.Raw.ToArray(), Array.Empty<HexView.HighlightSection>());
+                    }
+                    else {
+                        showFullPacketHexView = false;
+                    }
+                }
                 FontManager.PopFont();
 
                 ImGui.EndMenuBar();
@@ -263,8 +277,14 @@ namespace PacketPeep.Widgets
         {
             hexView.ShowSideParsedValues = Config.Inst.ShowParsedValuesInSide;
             hexView.ShowParsedValuesInTT = Config.Inst.ShowParsedValuesInToolTip;
-            
-            hexView.Draw();
+
+            if (showFullPacketHexView) {
+                ImGui.Text("Full packet hex view");
+                fullPackethexView.Draw();
+            }
+            else {
+                hexView.Draw();
+            }
         }
 
         private void DrawInspector()
