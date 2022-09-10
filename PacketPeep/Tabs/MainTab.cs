@@ -58,7 +58,10 @@ namespace PacketPeep.Widgets
             DrawMessageInspectors();
 
             PacketParser.Draw();
-            MagicQuery?.Draw();
+
+            if (Config.Inst.WindowsSettings.ShowMagicQuery) {
+                MagicQuery?.Draw();
+            }
 
             if (ShowAeroDllBrowser) {
                 var dllDir = !string.IsNullOrEmpty(Config.Inst.AeroMessageDllLocation) ? Path.GetDirectoryName(Config.Inst.AeroMessageDllLocation) : "";
