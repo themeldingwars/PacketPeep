@@ -23,7 +23,7 @@ You can then search and filter those messages and load into an inspector with th
 # Setup
 * Download a release from here and extract some where.
 * Open the settings UI ![Settings UI Open](Docs/UISettingsOpen.png)
-  * Clone the ``https://github.com/themeldingwars/PacketPeepData/tree/aero`` (make sure its the Aero branch)
+  * Clone the ``https://github.com/themeldingwars/AeroMessages``
   * Compile it
   * Set the path to the output dll into Packet Peeps Settings
 * Load a packet capture from the ``Load Capture`` button on the top right.
@@ -31,7 +31,7 @@ You can then search and filter those messages and load into an inspector with th
   * Double click one to open the inspector, if all went well you should see the hex view and the parsed output below like the screenshot above.
 
 # Hot Reloading
-Packet Peep can hot reload the ``AeroMessage.dll`` when it changes and refresh the views.
+Packet Peep can hot reload the ``AeroMessages.dll`` when it changes and refresh the views.
 
 All you should need to do is make some changes to that project and recompile to see the changes.
 
@@ -39,7 +39,7 @@ This is great for quick changes
 
 # Related Projects
 * [Aero](https://github.com/themeldingwars/Aero) Source generator used for the message classes
-* [Packet Peep Data](https://github.com/themeldingwars/PacketPeepData/tree/aero) Where the packet definitions go
+* [AeroMessages](https://github.com/themeldingwars/AeroMessages) Where the packet definitions go
 * [Protocol Data](https://github.com/themeldingwars/Sift)
 * [Wiki and some packet captures](https://github.com/themeldingwars/Documentation)
 
