@@ -1,5 +1,7 @@
 # PacketPeep 
 
+![Build Status](https://github.com/themeldingwars/PacketPeep/actions/workflows/dotnet.yml/badge.svg)
+
 Packet Peep is a research and network debugger.
 
 ![Main UI](Docs/UIScreenshot.png)
