@@ -190,10 +190,12 @@ namespace PacketPeep.Systems
                     foreach (var frame in keyframe.Frames) {
                         try {
                             var msg = new NsrGameMessage(id++);
-                            if (frame.WeirdInt != -1) {
+
+                            // Workaround replay weirdness with routed messages
+                            if (frame.MsgIdMaybe < 10) {
                                 msg.MainData = new byte[frame.Data.Length - 4];
                                 Array.Copy(frame.Data, 0, msg.MainData, 0, 9);
-                                Array.Copy(frame.Data, 13, msg.MainData, 9, frame.Data.Length - 13);   
+                                Array.Copy(frame.Data, 13, msg.MainData, 9, frame.Data.Length - 13); 
                             }
                             else {
                                 msg.MainData = frame.Data;
