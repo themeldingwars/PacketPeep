@@ -22,7 +22,7 @@ namespace PacketPeep.Systems
             // Warn if we don't have a path for the aero messages dll
             if (string.IsNullOrEmpty(Config.Inst.AeroMessageDllLocation)) {
                 PacketPeepTool.Log.AddLogWarn(LogCategories.PacketParser, "No Path set for the Aero Messages Dll!, Packet parsing won't work unless this is set in the settings!");
-                PacketPeepTool.Log.AddLogInfo(LogCategories.PacketParser, "Please get the packetPeepData repo and compile the messages dll for the game version you want and then set that dll in the settings :>");
+                PacketPeepTool.Log.AddLogInfo(LogCategories.PacketParser, "Please get the Aero Messages repo and compile the messages dll for the game version you want and then set that dll in the settings :>");
             }
             else if (!File.Exists(Config.Inst.AeroMessageDllLocation)) {
                 PacketPeepTool.Log.AddLogWarn(LogCategories.PacketParser, $"Can't find Aero Messages dll at the location: {Config.Inst.AeroMessageDllLocation}, please make sure its still there.");
