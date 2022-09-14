@@ -1,0 +1,34 @@
+name: Build Release
+
+on: 
+  push:
+    tags:
+    - '*'
+    
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true --self-contained true
+    - name: Archive Release
+      uses: thedoctor0/zip-release@main
+      with:
+        path: "D:\\a\\PacketPeep\\PacketPeep\\PacketPeep\\bin\\Release\\net6.0\\win-x64\\publish\\*"
+        type: 'zip'
+        filename: 'PacketPeep_Release_${{github.ref_name}}.zip'
+        exclusions: '*.git* /*node_modules/* .editorconfig'
+    - name: Upload Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: 'PacketPeep_Release_${{github.ref_name}}.zip'
+        token: ${{ secrets.GITHUB_TOKEN }}
