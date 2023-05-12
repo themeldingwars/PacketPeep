@@ -167,7 +167,7 @@ namespace PacketPeep.Widgets
                             offsetIdx++;
                         }
 
-                        scrollTo = offsetIdx * 17;
+                        scrollTo = offsetIdx * 22;
                     }
                 }
 
