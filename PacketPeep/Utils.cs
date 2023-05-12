@@ -111,9 +111,12 @@ namespace PacketPeep
                 header.EntityId     = BitConverter.ToUInt64(msg.Data[..8]) >> 8;
                 header.Length       = 9;
             }
-            else {
+            else if (isGameMsg) {
                 header.MessageId = msg.Data[0];
                 header.Length    = 1;
+            }
+            else {
+                header.Length = 0;
             }
 
             return header;
