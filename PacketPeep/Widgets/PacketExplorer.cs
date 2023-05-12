@@ -175,9 +175,11 @@ namespace PacketPeep.Widgets
 
                 ImGui.SameLine();
                 if (ImGui.Button("Open") || ImGui.IsKeyPressedMap(ImGuiKey.Enter)) {
-                    ImGui.CloseCurrentPopup();
-                    ToggleMessageSelect(messageFinderMsgIdx);
-                    OnMessageSelected?.Invoke(messageFinderMsgIdx, false);
+                    if (pcktDb.FilteredIndices.Contains(messageFinderMsgIdx)) {
+                        ImGui.CloseCurrentPopup();
+                        ToggleMessageSelect(messageFinderMsgIdx);
+                        OnMessageSelected?.Invoke(messageFinderMsgIdx, false);
+                    }
                 }
 
                 if (ImGui.IsItemHovered()) ImGui.SetTooltip("Open the message in an inspector. [Enter]");
