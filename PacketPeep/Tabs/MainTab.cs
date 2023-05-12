@@ -98,7 +98,7 @@ namespace PacketPeep.Widgets
 
             var msg            = PacketExp.GetMsg(idx);
             var parsedMessages = PacketExp.GetActiveSession().ParsedMessages;
-            var msgObj         = parsedMessages != null && parsedMessages.Count >= idx ? parsedMessages[idx] : null;
+            var msgObj         = parsedMessages != null && parsedMessages.Count != 0 && parsedMessages.Count >= idx ? parsedMessages[idx] : null;
             var msgInspector   = new MessageInspector(PacketExp.ActiveFilter.SessionName, idx, msg, msgObj);
             msgInspector.OnClose = CloseMessageInspector;
             MsgInspectors.Add(msgInspector);
