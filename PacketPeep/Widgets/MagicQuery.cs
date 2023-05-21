@@ -110,7 +110,7 @@ public class MagicQuery
         int numResults = results.Sum(x => x.Rows.Count);
         var combinedResults = new QueryResult
         {
-            Headers = results[0].Headers,
+            Headers = numResults > 0 ? results[0].Headers : new(string, Type)[] {("No Results", typeof(string))},
             Rows    = new(numResults)
         };
 
