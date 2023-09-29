@@ -102,7 +102,22 @@ public class MagicQuery
             chunkTasks.Add(task);
         }
 
-        Task.WhenAll(chunkTasks).Wait();
+        try {
+            Task.WhenAll(chunkTasks).Wait();
+        }
+        catch (AggregateException ae) {
+            sw.Stop();
+
+            var exceptions = ae.Flatten().InnerExceptions;
+            var ex = exceptions[0];
+            PacketPeepTool.Log.AddLogWarn(LogCategories.QueryEngine, $"{exceptions.Count} errors occured while executing the query.");
+            PacketPeepTool.Log.AddLogError(LogCategories.QueryEngine, $"{ex.GetType()}: {ex.Message}");
+            return new QueryResult
+            {
+                Headers = new(string, Type)[] {($"Error: {ex.Message}", typeof(string))},
+                Rows    = new(0)
+            };
+        }
 
         // Combine all the results
         var combineSw  = Stopwatch.StartNew();
@@ -110,7 +125,7 @@ public class MagicQuery
         int numResults = results.Sum(x => x.Rows.Count);
         var combinedResults = new QueryResult
         {
-            Headers = results[0].Headers,
+            Headers = numResults > 0 ? results[0].Headers : new(string, Type)[] {("No Results", typeof(string))},
             Rows    = new(numResults)
         };
 
