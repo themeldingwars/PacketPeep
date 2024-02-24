@@ -402,6 +402,7 @@ namespace PacketPeep.Widgets
                 AeroInspectorEntry.EntryType.Short  => DrawShort,
                 AeroInspectorEntry.EntryType.Ushort => DrawUShort,
                 AeroInspectorEntry.EntryType.Uint   => DrawUInt,
+                AeroInspectorEntry.EntryType.Sbyte  => DrawSByte,
                 AeroInspectorEntry.EntryType.Byte   => DrawByte,
                 AeroInspectorEntry.EntryType.Char   => DrawByte,
                 AeroInspectorEntry.EntryType.Float  => DrawFloat,
@@ -440,6 +441,7 @@ namespace PacketPeep.Widgets
             return hasChanged;
         }
 
+        private bool DrawSByte(AeroInspectorEntry  entry) => DrawNumber<sbyte>(entry, ImGuiDataType.S8);
         private bool DrawByte(AeroInspectorEntry   entry) => DrawNumber<byte>(entry, ImGuiDataType.U8);
         private bool DrawInt(AeroInspectorEntry    entry) => DrawNumber<int>(entry, ImGuiDataType.S32);
         private bool DrawUInt(AeroInspectorEntry   entry) => DrawNumber<uint>(entry, ImGuiDataType.U32);
@@ -512,6 +514,7 @@ namespace PacketPeep.Widgets
                 TypeCode.UInt32 => AeroInspectorEntry.EntryType.Uint,
                 TypeCode.UInt64 => AeroInspectorEntry.EntryType.Ulong,
                 TypeCode.UInt16 => AeroInspectorEntry.EntryType.Ushort,
+                TypeCode.SByte  => AeroInspectorEntry.EntryType.Sbyte,
                 TypeCode.Byte   => AeroInspectorEntry.EntryType.Byte,
                 TypeCode.Char   => AeroInspectorEntry.EntryType.Char,
                 TypeCode.Single => AeroInspectorEntry.EntryType.Float,
@@ -600,6 +603,7 @@ namespace PacketPeep.Widgets
 
         public enum EntryType
         {
+            Sbyte,
             Byte,
             Char,
             Int,
