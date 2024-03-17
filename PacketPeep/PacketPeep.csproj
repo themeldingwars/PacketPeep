@@ -3,7 +3,7 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net6.0</TargetFramework>
-        <VersionSuffix>1.0.2.$([System.DateTime]::UtcNow.ToString(hhss))</VersionSuffix>
+        <VersionSuffix>1.0.3.$([System.DateTime]::UtcNow.ToString(hhss))</VersionSuffix>
         <Version Condition=" '$(VersionSuffix)' != '' ">$(VersionSuffix)</Version>
         <Deterministic>false</Deterministic>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
