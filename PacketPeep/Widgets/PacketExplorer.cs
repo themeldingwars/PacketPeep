@@ -19,6 +19,7 @@ namespace PacketPeep.Widgets
         public  PacketFilter                       ActiveFilter          = new();
         private string                             channelsPreviewStr    = "";
         private string                             fromPreviewStr        = "";
+        private string                             entityIdsPreviewStr   = "";
         private Dictionary<string, ControllerData> controllerList        = new();
         private MsgFilterData                      pendingMsgFilterData  = MsgFilterData.Create();
         private string                             pendingControllerName = "";
@@ -112,8 +113,22 @@ namespace PacketPeep.Widgets
             hasFiltersChanged = DrawFiltersSource(hasFiltersChanged);
 
             // Message / Controllers
-            ImGui.SetNextItemWidth(-32);
+            ImGui.SetNextItemWidth(ImGui.GetWindowWidth()/2 - 40);
             hasFiltersChanged = DrawFiltersMessages(hasFiltersChanged);
+
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(ImGui.GetWindowWidth()/2 - 40);
+            hasFiltersChanged = DrawFiltersEntityIds(hasFiltersChanged);
+
+            ImGui.SameLine();
+            FontManager.PushFont("FAS");
+            if (ImGui.Button(ActiveFilter.EntityIdsEnabled ? "\uf205" : "\uf204"))
+            {
+                ActiveFilter.EntityIdsEnabled = !ActiveFilter.EntityIdsEnabled;
+                hasFiltersChanged = true;
+                SetEntityIdsPreviewStr();
+            }
+            FontManager.PopFont();
 
             ImGui.SameLine();
             DrawMessageFinder();
@@ -444,6 +459,60 @@ namespace PacketPeep.Widgets
             return hasFiltersChanged;
         }
 
+        private string inputEntityId = "";
+
+        private bool DrawFiltersEntityIds(bool hasFiltersChanged)
+        {
+            if (ImGui.BeginCombo("###Entity Ids", entityIdsPreviewStr)) {
+                ImGui.InputText("###Entity Id", ref inputEntityId, 20, 0);
+
+                ImGui.SameLine();
+                if (ImGui.Button("Add") || ImGui.IsKeyPressedMap(ImGuiKey.Enter))
+                {
+                    if (ulong.TryParse(inputEntityId, out var entityId) && !ActiveFilter.EntityIds.Contains(entityId))
+                    {
+                        ActiveFilter.EntityIds.Add(entityId);
+                        hasFiltersChanged = true;
+                        inputEntityId = "";
+                    }
+                }
+
+                ImGui.NewLine();
+                if (ImGui.Button("Remove all"))
+                {
+                    ActiveFilter.EntityIds.Clear();
+                    hasFiltersChanged = true;
+                }
+
+                if (ImGui.BeginTable("Entity Ids", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.Borders)) {
+                    var entityIdsFiltersToRemove = new List<int>();
+                    int idx = 0;
+                    foreach (var eid in ActiveFilter.EntityIds) {
+                        ImGui.TableNextColumn();
+                        ImGui.Text($"{eid}");
+                        ImGui.TableNextColumn();
+                        if (ImGui.Button($"X###{idx}")) {
+                            entityIdsFiltersToRemove.Add(idx);
+                            hasFiltersChanged = true;
+                        }
+
+                        idx++;
+                    }
+
+                    foreach (var index in entityIdsFiltersToRemove) {
+                        ActiveFilter.EntityIds.RemoveAt(index);
+                    }
+
+                    ImGui.EndTable();
+                }
+
+                ImGui.EndCombo();
+            }
+
+            if (hasFiltersChanged || entityIdsPreviewStr == "") SetEntityIdsPreviewStr();
+            return hasFiltersChanged;
+        }
+
         private bool DrawFilterChannels(bool hasFiltersChanged)
         {
             ImGui.SetNextItemWidth(300);
@@ -465,6 +534,7 @@ namespace PacketPeep.Widgets
         {
             if (ImGui.BeginChild("###PacketListArea", new Vector2(-1, -40))) {
                 var numColumns = Config.Inst.PacketList.GetNumColumsNeeded() + 3; // 3 fixed ones
+                if (ActiveFilter.EntityIds.Count > 0) numColumns++;
                 if (ImGui.BeginTable("Packet List", numColumns, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY | ImGuiTableFlags.ContextMenuInBody)) {
                     DrawPacketListHeader(numColumns);
 
@@ -496,7 +566,7 @@ namespace PacketPeep.Widgets
             }
         }
 
-        private static void DrawPacketListHeader(int numColumns)
+        private void DrawPacketListHeader(int numColumns)
         {
             ImGui.TableSetupScrollFreeze(numColumns, 1);
             if (Config.Inst.PacketList.ShowPacketIdx) ImGui.TableSetupColumn("Pkt Idx", ImGuiTableColumnFlags.WidthFixed, 45);
@@ -504,6 +574,7 @@ namespace PacketPeep.Widgets
             ImGui.TableSetupColumn("Ch", ImGuiTableColumnFlags.WidthFixed, 20);
             if (Config.Inst.PacketList.ShowPacketSeqNum) ImGui.TableSetupColumn("Seq", ImGuiTableColumnFlags.WidthFixed, 45);
             if (Config.Inst.PacketList.ShowPacketIds) ImGui.TableSetupColumn("Id", ImGuiTableColumnFlags.WidthFixed, 45);
+            if (ActiveFilter.EntityIds.Count > 0) ImGui.TableSetupColumn("Ent Idx", ImGuiTableColumnFlags.WidthFixed, 45);
             ImGui.TableSetupColumn("Name");
             ImGui.TableHeadersRow();
         }
@@ -569,6 +640,14 @@ namespace PacketPeep.Widgets
                     else {
                         ImGui.Text(isGss ? $"{gameMsg.Data[0]}::{gameMsg.Data[8]}" : $"{gameMsg.Data[0]}");
                     }
+            }
+
+            if (ActiveFilter.EntityIds.Count > 0)
+            {
+                ImGui.TableNextColumn();
+                var headerData = Utils.GetGssMessageHeader(msg);
+                var entityIdIdx = ActiveFilter.EntityIds.FindIndex(e => e == headerData.EntityId);
+                ImGui.Text(entityIdIdx == -1 ? "" : $"{entityIdIdx}");
             }
 
             // Name
@@ -659,6 +738,22 @@ namespace PacketPeep.Widgets
             if (ImGui.MenuItem("Add filter for this type")) {
                 ActiveFilter.AddFilter(gameMsg.Channel, gameMsg.FromServer, gameMsg.Data[0], isGss ? gameMsg.Data[8] : gameMsg.Data[0]);
                 shouldApplyFilter = true;
+            }
+
+            if (ImGui.MenuItem("Add/remove filter for this EntityId")) {
+                var entId = Utils.GetEntityId(gameMsg);
+                var filter = ActiveFilter.EntityIds;
+                if (!filter.Contains(entId))
+                {
+                    filter.Add(entId);
+                }
+                else
+                {
+                    filter.Remove(entId);
+                }
+
+                shouldApplyFilter = true;
+                SetEntityIdsPreviewStr();
             }
 
             OnMessageContextMenuDraw?.Invoke(i);
@@ -764,6 +859,11 @@ namespace PacketPeep.Widgets
             else {
                 fromPreviewStr += "none";
             }
+        }
+
+        private void SetEntityIdsPreviewStr()
+        {
+            entityIdsPreviewStr = $"EntityIds: {ActiveFilter.EntityIds.Count} selected";
         }
 
         private void ToggleMessageSelect(int idx)

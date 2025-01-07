@@ -243,6 +243,20 @@ namespace PacketPeep.Widgets
                         PacketPeepTool.PcktDb.ApplyFilter(PacketPeepTool.Main.PacketExp.ActiveFilter);
                     }
 
+                    if (ImGui.MenuItem("Add/remove filter for this EntityId")) {
+                        var entId = Utils.GetEntityId(Msg);
+                        var filter = PacketPeepTool.Main.PacketExp.ActiveFilter.EntityIds;
+                        if (!filter.Contains(entId))
+                        {
+                            filter.Add(entId);
+                        }
+                        else
+                        {
+                            filter.Remove(entId);
+                        }
+                        PacketPeepTool.PcktDb.ApplyFilter(PacketPeepTool.Main.PacketExp.ActiveFilter);
+                    }
+
                     ImGui.EndMenu();
                 }
 

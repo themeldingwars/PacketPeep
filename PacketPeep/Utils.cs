@@ -121,6 +121,21 @@ namespace PacketPeep
 
             return header;
         }
+
+        public static ulong GetEntityId(Message msg)
+        {
+            if (msg is SubMessage subMessage)
+            {
+                return subMessage.EntityId;
+            }
+
+            if (msg is GameMessage { Channel: Channel.ReliableGss or Channel.UnreliableGss })
+            {
+                return BitConverter.ToUInt64(msg.Data[..8]) >> 8;
+            }
+
+            return 0;
+        }
     }
 
     public struct MessageHeader
