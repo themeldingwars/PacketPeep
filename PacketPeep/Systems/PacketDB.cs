@@ -245,6 +245,11 @@ namespace PacketPeep.Systems
                     fromCheck |= msg.FromServer  && filter.FromServer;
                     fromCheck |= !msg.FromServer && filter.FromClient;
 
+                    bool entityIdsCheck = !filter.EntityIdsEnabled;
+                    if (msg.Server == Server.Game && msg is GameMessage gameMessage)
+                    {
+                        entityIdsCheck |= filter.EntityIds.Contains(Utils.GetEntityId(gameMessage));
+                    }
 
                     // Channel filtering
                     bool channelCheck = false;
@@ -292,7 +297,7 @@ namespace PacketPeep.Systems
                         }
                     }
 
-                    if (fromCheck && channelCheck && msgIdCheck) FilteredIndices.Add(msg.Id);
+                    if (fromCheck && channelCheck && msgIdCheck && entityIdsCheck) FilteredIndices.Add(msg.Id);
                 } //);
 
                 sw.Stop();
@@ -458,7 +463,9 @@ namespace PacketPeep.Systems
         public bool ChanRgss;
 
         public List<MsgFilterData> MsgFilters = new();
-        public List<UInt64>        EntityIds  = new();
+
+        public List<ulong> EntityIds = new();
+        public bool EntityIdsEnabled = false;
 
         public string SessionName = "";
 
